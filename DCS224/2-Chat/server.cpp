@@ -27,9 +27,16 @@ mutex stdio_lock;
 void handler(fox_socket sock);
 void broadcast(const string &content);
 
-int main()
+int main(int argc, char *argv[])
 {
-    fox_socket sock(INADDR_ANY, 3899);
+    int port = 50550;
+    cout << "Usage: " << argv[0] << " [port=50550]" << endl;
+    if (argc >= 2)
+    {
+        port = std::atoi(argv[1]);
+    }
+    cout << "Binding on 0.0.0.0:" << port << endl;
+    fox_socket sock(INADDR_ANY, port);
     try
     {
         sock.bind();
@@ -58,8 +65,17 @@ void handler(fox_socket sock)
 {
     while (true)
     {
-        auto str = sock.recv();
-        broadcast(str);
+        try
+        {
+            auto str = sock.recv();
+            broadcast(str);
+        }
+        catch (const std::exception &ex)
+        {
+            cout << "Error encountered: " << ex.what();
+            if (strcmp("Remote disconnected", ex.what()) == 0)
+                break;
+        }
     }
 }
 

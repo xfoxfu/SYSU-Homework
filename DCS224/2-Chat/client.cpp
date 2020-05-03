@@ -18,8 +18,15 @@ void handle(fox_socket sock);
 
 int main(int argc, char *argv[])
 {
-    fox_socket sock(inet_addr("127.0.0.1"), 3899);
-    cout << "103.26.79.35" << endl;
+    const char *host = "127.0.0.1";
+    int port = 50550;
+    cout << "Usage: " << argv[0] << " [server=127.0.0.1] [port=50550]" << endl;
+    if (argc >= 2)
+        host = argv[1];
+    if (argc >= 3)
+        port = std::atoi(argv[2]);
+    cout << "Connecting to " << host << ":" << port << endl;
+    fox_socket sock(inet_addr(host), port);
     try
     {
         sock.connect();
