@@ -28,6 +28,7 @@ mutex stdio_lock;
 
 void handler(fox_socket sock);
 void broadcast(const string &content);
+string make_message(const fox_socket &sock, const string &content);
 
 int main(int argc, char *argv[])
 {
@@ -53,6 +54,7 @@ int main(int argc, char *argv[])
                 auto _guard = std::lock_guard(sockets_lock);
                 sockets.push_back(make_pair(std::move(sub_sock), thread(handler, sub_sock)));
             }
+            broadcast(make_message(sub_sock, "Enter!"));
         }
     }
     catch (std::exception &e)
@@ -69,22 +71,7 @@ void handler(fox_socket sock)
     {
         try
         {
-            auto str = sock.recv();
-
-            std::ostringstream os;
-
-            int ip_segments[4] = {0};
-            ip_segments[0] = sock.ip() << 24 >> 24;
-            ip_segments[1] = sock.ip() << 16 >> 24;
-            ip_segments[2] = sock.ip() << 8 >> 24;
-            ip_segments[3] = sock.ip() >> 24;
-            auto time = system_clock::to_time_t(system_clock::now());
-
-            os << "Client IP: " << ip_segments[0] << "." << ip_segments[1] << "." << ip_segments[2] << "." << ip_segments[3] << endl
-               << "Client Port: " << sock.port() << endl
-               << "Time: " << std::put_time(std::localtime(&time), "%F %T") << endl
-               << "Message: " << str;
-            broadcast(os.str());
+            broadcast(make_message(sock, sock.recv()));
         }
         catch (const std::exception &ex)
         {
@@ -108,4 +95,22 @@ void broadcast(const string &content)
             sock.send(content);
         }
     }
+}
+
+string make_message(const fox_socket &sock, const string &content)
+{
+    std::ostringstream os;
+
+    int ip_segments[4] = {0};
+    ip_segments[0] = sock.ip() << 24 >> 24;
+    ip_segments[1] = sock.ip() << 16 >> 24;
+    ip_segments[2] = sock.ip() << 8 >> 24;
+    ip_segments[3] = sock.ip() >> 24;
+    auto time = system_clock::to_time_t(system_clock::now());
+
+    os << "Client IP: " << ip_segments[0] << "." << ip_segments[1] << "." << ip_segments[2] << "." << ip_segments[3] << endl
+       << "Client Port: " << sock.port() << endl
+       << "Time: " << std::put_time(std::localtime(&time), "%F %T") << endl
+       << "Message: " << content;
+    return os.str();
 }

@@ -48,8 +48,8 @@ public:
     void close();
     void send(const std::string &str) const;
     std::string recv();
-    uint32_t ip();
-    uint16_t port();
+    uint32_t ip() const;
+    uint16_t port() const;
 };
 
 void fox_socket::_ensure_connection() const
@@ -140,12 +140,12 @@ std::string fox_socket::recv()
     return os.str();
 }
 
-uint32_t fox_socket::ip()
+uint32_t fox_socket::ip() const
 {
     return _addr.sin_addr.s_addr;
 }
 
-uint16_t fox_socket::port()
+uint16_t fox_socket::port() const
 {
     return _addr.sin_port;
 }
