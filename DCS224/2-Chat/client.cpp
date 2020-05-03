@@ -19,14 +19,14 @@ void handle(fox_socket sock);
 int main(int argc, char *argv[])
 {
     const char *host = "127.0.0.1";
-    int port = 50550;
-    cout << "Usage: " << argv[0] << " [server=127.0.0.1] [port=50550]" << endl;
+    const char *port = "50500";
+    cout << "Usage: " << argv[0] << " [server=" << host << "] [port=" << port << "]" << endl;
     if (argc >= 2)
         host = argv[1];
     if (argc >= 3)
-        port = std::atoi(argv[2]);
+        port = argv[2];
     cout << "Connecting to " << host << ":" << port << endl;
-    fox_socket sock(inet_addr(host), port);
+    fox_socket sock(host, port);
     try
     {
         sock.connect();

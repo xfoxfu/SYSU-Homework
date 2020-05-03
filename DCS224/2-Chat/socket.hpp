@@ -39,6 +39,7 @@ class fox_socket
     void _ensure_no_connection() const;
 
 public:
+    fox_socket(const char *ip, const char *port);
     fox_socket(uint32_t ip, uint16_t port);
     fox_socket(int sock_id, struct sockaddr_in addr);
     void bind();
@@ -65,6 +66,11 @@ void fox_socket::_ensure_no_connection() const
     {
         throw new std::logic_error("already connected");
     }
+}
+
+fox_socket::fox_socket(const char *ip, const char *port)
+    : fox_socket(inet_addr(ip), htons(atoi(port)))
+{
 }
 
 fox_socket::fox_socket(uint32_t ip, uint16_t port)

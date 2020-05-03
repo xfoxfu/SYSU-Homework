@@ -29,14 +29,14 @@ void broadcast(const string &content);
 
 int main(int argc, char *argv[])
 {
-    int port = 50550;
-    cout << "Usage: " << argv[0] << " [port=50550]" << endl;
+    const char *port = "50500";
+    cout << "Usage: " << argv[0] << " [port=" << port << "]" << endl;
     if (argc >= 2)
     {
-        port = std::atoi(argv[1]);
+        port = argv[1];
     }
     cout << "Binding on 0.0.0.0:" << port << endl;
-    fox_socket sock(INADDR_ANY, port);
+    fox_socket sock("0.0.0.0", port);
     try
     {
         sock.bind();
