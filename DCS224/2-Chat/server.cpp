@@ -7,6 +7,8 @@
 #include <list>
 #include <utility>
 #include <chrono>
+#include <sstream>
+#include <iomanip>
 #include "socket.hpp"
 
 using std::cout;
@@ -68,7 +70,21 @@ void handler(fox_socket sock)
         try
         {
             auto str = sock.recv();
-            broadcast(str);
+
+            std::ostringstream os;
+
+            int ip_segments[4] = {0};
+            ip_segments[0] = sock.ip() << 24 >> 24;
+            ip_segments[1] = sock.ip() << 16 >> 24;
+            ip_segments[2] = sock.ip() << 8 >> 24;
+            ip_segments[3] = sock.ip() >> 24;
+            auto time = system_clock::to_time_t(system_clock::now());
+
+            os << "Client IP: " << ip_segments[0] << "." << ip_segments[1] << "." << ip_segments[2] << "." << ip_segments[3] << endl
+               << "Client Port: " << sock.port() << endl
+               << "Time: " << std::put_time(std::localtime(&time), "%F %T") << endl
+               << "Message: " << str;
+            broadcast(os.str());
         }
         catch (const std::exception &ex)
         {
