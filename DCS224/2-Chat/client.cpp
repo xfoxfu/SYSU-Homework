@@ -41,21 +41,38 @@ int main(int argc, char *argv[])
             cin >> msg;
 
             sock.send(msg);
+
+            if (msg == "exit")
+            {
+                cout << "Leave!" << endl;
+                sock.close();
+                th.join();
+                break;
+            }
         }
     }
     catch (std::exception &e)
     {
         cout << e.what() << endl;
     }
-    sock.close();
 }
 
 void handle(fox_socket sock)
 {
-    while (true)
+    try
     {
-        auto str = sock.recv();
-        cout << '\r' << str << endl
-             << PROMPT << std::flush;
+        while (true)
+        {
+            auto str = sock.recv();
+            cout << '\r' << str << endl
+                 << PROMPT << std::flush;
+        }
+    }
+    catch (const std::exception &ex)
+    {
+        if (!(strstr(ex.what(), "Bad file descriptor") != nullptr))
+        {
+            throw ex;
+        }
     }
 }

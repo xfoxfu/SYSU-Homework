@@ -1,6 +1,6 @@
 CC=g++
 IDIR=
-CFLAGS=-Wall -Wextra -std=c++17 -g $(patsubst %,-I %,$(IDIR))
+CFLAGS=-Wall -Wextra -std=c++17 -lpthread -g $(patsubst %,-I %,$(IDIR))
 FFLAGS=
 ODIR=.
 PROGRAMS=server client

@@ -50,6 +50,8 @@ public:
     std::string recv();
     uint32_t ip() const;
     uint16_t port() const;
+    bool operator==(const fox_socket &rhs) const noexcept;
+    bool connected() const noexcept;
 };
 
 void fox_socket::_ensure_connection() const
@@ -115,12 +117,15 @@ fox_socket fox_socket::accept()
 
 void fox_socket::close()
 {
-    checked_run(::close(_sock_id));
+    if (_connected)
+    {
+        checked_run(::close(_sock_id));
+        _connected = false;
+    }
 }
 
 void fox_socket::send(const std::string &str) const
 {
-    // std::cout << "PRINTED=" << str.length() << std::endl;
     checked_run(::send(_sock_id, str.c_str(), str.length() + 1, 0));
 }
 
@@ -133,7 +138,10 @@ std::string fox_socket::recv()
     checked_run(ret);
     if (ret == 0)
     {
-        throw std::logic_error("Remote disconnected");
+        _connected = false;
+        std::ostringstream iss;
+        iss << "Remote disconnected, sock_id=" << _sock_id;
+        throw std::logic_error(iss.str());
     }
     has_received += ret;
     os.write(buf, ret);
@@ -148,4 +156,14 @@ uint32_t fox_socket::ip() const
 uint16_t fox_socket::port() const
 {
     return _addr.sin_port;
+}
+
+bool fox_socket::operator==(const fox_socket &rhs) const noexcept
+{
+    return _sock_id == rhs._sock_id;
+}
+
+bool fox_socket::connected() const noexcept
+{
+    return _connected;
 }

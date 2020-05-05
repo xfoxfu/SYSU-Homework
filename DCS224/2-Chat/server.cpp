@@ -9,6 +9,8 @@
 #include <chrono>
 #include <sstream>
 #include <iomanip>
+#include <algorithm>
+#include <vector>
 #include "socket.hpp"
 
 using std::cout;
@@ -29,6 +31,7 @@ mutex stdio_lock;
 void handler(fox_socket sock);
 void broadcast(const string &content);
 string make_message(const fox_socket &sock, const string &content);
+void handle_disconnect(const fox_socket &sock) noexcept;
 
 int main(int argc, char *argv[])
 {
@@ -59,7 +62,7 @@ int main(int argc, char *argv[])
     }
     catch (std::exception &e)
     {
-        cout << e.what() << endl;
+        cout << "Exception: " << e.what() << endl;
     }
     sock.close();
     return 0;
@@ -67,17 +70,21 @@ int main(int argc, char *argv[])
 
 void handler(fox_socket sock)
 {
-    while (true)
+    while (sock.connected())
     {
         try
         {
-            broadcast(make_message(sock, sock.recv()));
+            auto msg = sock.recv();
+            broadcast(make_message(sock, msg));
         }
         catch (const std::exception &ex)
         {
-            cout << "Error encountered: " << ex.what();
-            if (strcmp("Remote disconnected", ex.what()) == 0)
-                break;
+            cout << "Error encountered while recv: " << ex.what() << endl;
+            if (strstr(ex.what(), "Remote disconnected") != nullptr)
+            {
+                handle_disconnect(sock);
+                // connected = false;
+            }
         }
     }
 }
@@ -92,7 +99,18 @@ void broadcast(const string &content)
         auto _guard = std::lock_guard(sockets_lock);
         for (const auto &[sock, _] : sockets)
         {
-            sock.send(content);
+            if (!sock.connected())
+            {
+                continue;
+            }
+            try
+            {
+                sock.send(content);
+            }
+            catch (const std::exception &ex)
+            {
+                cout << "Error encountered while send: " << ex.what() << endl;
+            }
         }
     }
 }
@@ -113,4 +131,23 @@ string make_message(const fox_socket &sock, const string &content)
        << "Time: " << std::put_time(std::localtime(&time), "%F %T") << endl
        << "Message: " << content;
     return os.str();
+}
+
+void handle_disconnect(const fox_socket &sock) noexcept
+{
+    {
+        auto _guard = std::lock_guard(sockets_lock);
+        for (auto it = sockets.begin(); it != sockets.end(); it++)
+        {
+            if (it->first == sock)
+            {
+                // Here the thread cannot be joined, because it may be just the current thread.
+                // it->second.join();
+                it->first.close();
+                // Cannot remove the iterator, because it may refer to current thread.
+                // sockets.erase(it);
+            }
+        }
+    }
+    broadcast(make_message(sock, "Leave!"));
 }
