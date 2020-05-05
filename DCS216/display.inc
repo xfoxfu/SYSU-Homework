@@ -12,6 +12,7 @@ boot:
     ; mov  ss, ax      ; \  Keep these close together
     ; mov  sp, bp      ; / 
 
+    mov word [count], 0
     mov ax, word DISP_BASE
     mov es, ax ; set ES at base address of VGA buffer
 ;   int col = 0;
@@ -28,9 +29,9 @@ boot:
 ;   for (;;) {
 loop:
 print:
-    ; inc word[count]
-    ; cmp word[count], 10
-    ; jge exit
+    inc word [count]
+    cmp word [count], 512
+    jge exit
 ;     table[row][col] = '*';
     xor bx, bx      ; bx = 0
     xor ax, ax      ; ax = 0
@@ -184,7 +185,8 @@ fwd4:
 ;   }
 exit:
     ; mov ax, [retaddr]
-    ; jmp ax
+    ; jmp [retaddr]
+    ret
 data:
     color db 0
     sax dw 0

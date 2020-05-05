@@ -30,4 +30,4 @@ clean:
 	rm -f $(OBJ) $(BIN)
 
 run: $(BIN)
-	qemu-system-x86_64 -hda $(BIN)
+	qemu-system-x86_64 -fda $(BIN)

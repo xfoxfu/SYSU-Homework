@@ -8,22 +8,24 @@ SECTION_OFFSET equ 0x100
 
 _start:
     ; set correct segment base address
-	mov ax, cs
-	mov ds, ax
-	mov es, ax
+    mov ax, cs
+    mov ds, ax
+    mov es, ax
     xor ax, ax
     mov ss, ax
     mov sp, bp
 
-    ; mov bp, message
-	; mov ax, 1301h
-	; mov bx, 000Fh
-	; mov cx, len
-	; mov dx, 0000h
-	; int 10h
-    ; mov bp, sp
-
 another:
+    ; mov byte[bp], '0'
+    mov word[bpp], bp
+    mov bp, message
+    mov ax, 1301h
+    mov bx, 000Fh
+    mov cx, len
+    mov dx, 0000h
+    int 10h
+    mov bp, word[bpp]
+
     ; read character input
     mov ah, 0x00
     int 0x16
@@ -50,30 +52,33 @@ read:
     ; DL = drive number (bit 7 set for hard disk)
     ; ES:BX -> data buffer
     ; 
-	mov ax, LOAD_SECTION
-	mov es, ax
-	mov bx, SECTION_OFFSET
-	mov ax, 0201h
+    mov ax, LOAD_SECTION
+    mov es, ax
+    mov bx, SECTION_OFFSET
+    mov ax, 0201h
     mov dh, 00h
     ; DL read by others
-	mov ch, 00h
-	int 13h
+    mov ch, 00h
+    int 13h
 
     ; execute user program
     ; mov ax, [another]
     call (LOAD_SECTION << 4 + SECTION_OFFSET)
 
-    ; mov bp, message
-	; mov ax, 1301h
-	; mov bx, 000Fh
-	; mov cx, len
-	; mov dx, 0000h
-	; int 10h
-    ; jmp another
+    xor ax, ax
+    mov es, ax
+    mov bp, message
+    mov ax, 1301h
+    mov bx, 000Fh
+    mov cx, len
+    mov dx, 0000h
+    int 10h
+    jmp another
 
     hlt
 
-	message db "Enter a,b,c,d to run different program"
-	len     equ ($ -message)
+    message db "Enter a,b,c,d to run different program"
+    len     equ ($ -message)
+    bpp dw 0
 times 510 - ($-$$) db 0 ; pad remaining 510 bytes with zeroes
 dw 0xaa55 ; magic bootloader magic - marks this 512 byte sector bootable!
