@@ -1,12 +1,14 @@
 bits 16 ; tell NASM this is 16 bit code
-org 0x7c00 ; tell NASM to start outputting stuff at offset 0x7c00
+org 0x100 ; tell NASM to start outputting stuff at offset 0x7c00
 
 boot:
-    mov  bp, 7C00h
-    xor  ax, ax
-    mov  ds, ax
-    mov  es, ax
-    mov  ss, ax      ; \  Keep these close together
+    ; mov  bp, 7C00h
+	mov ax, cs ; 通过AX中转, 将CS的值传送给DS和ES
+	mov ds, ax
+	mov es, ax
+    ; mov  ds, ax
+    ; mov  es, ax
+    ; mov  ss, ax      ; \  Keep these close together
     mov  sp, bp      ; / 
 
     mov ax, word DISP_BASE
@@ -149,6 +151,7 @@ fwd4:
     ; mov cx, 0x0001
     ; mov dx, 0x86A0
     mov AH, 0x86
+    mov al, 0
     int 0x15
     mov dx, [sdx]
     mov cx, [scx]
