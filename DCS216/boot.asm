@@ -1,50 +1,36 @@
+; this is a NASM code
+
 bits 16
-org  0x7c00
+org  0x7c00 ; expected to be loaded at 0x7c00 (bootloader)
 
 LOAD_SECTION equ 0x800
-DRIVER_OFFSET equ 0x100
+SECTION_OFFSET equ 0x100
 
 _start:
-	mov ax, cs ; 通过AX中转, 将CS的值传送给DS和ES
+    ; set correct segment base address
+	mov ax, cs
 	mov ds, ax
 	mov es, ax
+    xor ax, ax
+    mov ss, ax
+    mov sp, bp
 
-    ; ; Set SS and SP as they may get used by BIOS calls.
-    ; xor ax, ax
-    ; mov ss, ax
-    ; mov sp, 0x0000
+    ; mov bp, message
+	; mov ax, 1301h
+	; mov bx, 000Fh
+	; mov cx, len
+	; mov dx, 0000h
+	; int 10h
+    ; mov bp, sp
 
-
-    ; cli
-
-
-    ; Get input to %al
+another:
+    ; read character input
     mov ah, 0x00
     int 0x16
 
-    ; mov cl, al
-    ; sub cl, 'a' - 2
-    ; inc al
-	cmp al ,'a'
-	je pa
-	cmp al ,'b'
-	je pb
-	cmp al ,'c'
-	je pc
-	cmp al ,'d'
-	je pd
-pa:
-	mov cl,02h
-	jmp read
-pb:
-	mov cl,03h
-	jmp read
-pc:
-	mov cl,04h
-	jmp read
-pd:
-	mov cl,05h
-	jmp read	
+    ; compute disk sector id
+    mov cl, al
+    sub cl, 'a' - 3
 
 read:
     ; DOS 1+ - SELECT DEFAULT DRIVE
@@ -66,20 +52,28 @@ read:
     ; 
 	mov ax, LOAD_SECTION
 	mov es, ax
-	mov bx, DRIVER_OFFSET
-	mov ax,0201h
-	; mov dx,0080h
+	mov bx, SECTION_OFFSET
+	mov ax, 0201h
     mov dh, 00h
     ; DL read by others
-	mov ch,00h
-	
+	mov ch, 00h
 	int 13h
-    ; mov ax, LOAD_SECTION
-    ; mov es, ax
-	; jmp [es:100h]
-    jmp (LOAD_SECTION << 4 + DRIVER_OFFSET)
+
+    ; execute user program
+    ; mov ax, [another]
+    call (LOAD_SECTION << 4 + SECTION_OFFSET)
+
+    ; mov bp, message
+	; mov ax, 1301h
+	; mov bx, 000Fh
+	; mov cx, len
+	; mov dx, 0000h
+	; int 10h
+    ; jmp another
 
     hlt
 
+	message db "Enter a,b,c,d to run different program"
+	len     equ ($ -message)
 times 510 - ($-$$) db 0 ; pad remaining 510 bytes with zeroes
 dw 0xaa55 ; magic bootloader magic - marks this 512 byte sector bootable!

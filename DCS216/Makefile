@@ -13,12 +13,13 @@ $(ODIR)/%.bin: %.asm $(DEPS) | $(ODIR)/
 	$(CC) $(CFLAGS) -o $@ $<
 
 $(BIN): $(OBJ)
-	@dd if=$(ODIR)/boot.bin                 of=$@ bs=512 count=1 seek=0 conv=notrunc
-	# dd if=executables.txt                  of=$@ bs=512 count=1 seek=1 conv=notrunc
-	@dd if=$(ODIR)/display_top_left.bin     of=$@ bs=512 count=1 seek=1 conv=notrunc
-	@dd if=$(ODIR)/display_top_right.bin    of=$@ bs=512 count=1 seek=2 conv=notrunc
-	@dd if=$(ODIR)/display_bottom_left.bin  of=$@ bs=512 count=1 seek=3 conv=notrunc
-	@dd if=$(ODIR)/display_bottom_right.bin of=$@ bs=512 count=1 seek=4 conv=notrunc
+	rm -rf $(BIN)
+	dd if=$(ODIR)/boot.bin                 of=$@ bs=512 count=1 seek=0 conv=notrunc
+	dd if=executables.txt                  of=$@ bs=512 count=1 seek=1 conv=notrunc
+	dd if=$(ODIR)/display_top_left.bin     of=$@ bs=512 count=1 seek=2 conv=notrunc
+	dd if=$(ODIR)/display_top_right.bin    of=$@ bs=512 count=1 seek=3 conv=notrunc
+	dd if=$(ODIR)/display_bottom_left.bin  of=$@ bs=512 count=1 seek=4 conv=notrunc
+	dd if=$(ODIR)/display_bottom_right.bin of=$@ bs=512 count=1 seek=5 conv=notrunc
 
 .PHONY: clean run
 

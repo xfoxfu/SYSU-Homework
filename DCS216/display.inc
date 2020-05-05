@@ -2,14 +2,15 @@ bits 16 ; tell NASM this is 16 bit code
 org 0x100 ; tell NASM to start outputting stuff at offset 0x7c00
 
 boot:
+    ; mov [retaddr], ax
     ; mov  bp, 7C00h
-	mov ax, cs ; 通过AX中转, 将CS的值传送给DS和ES
-	mov ds, ax
-	mov es, ax
+	; mov ax, cs ; 通过AX中转, 将CS的值传送给DS和ES
+	; mov ds, ax
+	; mov es, ax
     ; mov  ds, ax
     ; mov  es, ax
     ; mov  ss, ax      ; \  Keep these close together
-    mov  sp, bp      ; / 
+    ; mov  sp, bp      ; / 
 
     mov ax, word DISP_BASE
     mov es, ax ; set ES at base address of VGA buffer
@@ -27,6 +28,9 @@ boot:
 ;   for (;;) {
 loop:
 print:
+    ; inc word[count]
+    ; cmp word[count], 10
+    ; jge exit
 ;     table[row][col] = '*';
     xor bx, bx      ; bx = 0
     xor ax, ax      ; ax = 0
@@ -178,8 +182,9 @@ fwd4:
 
     jmp loop
 ;   }
-
-    jmp $
+exit:
+    ; mov ax, [retaddr]
+    ; jmp ax
 data:
     color db 0
     sax dw 0
@@ -195,7 +200,9 @@ data:
     protect5 dw 0
     protect6 dw 0
     protect7 dw 0
-    name db ASM_NAME
+    ; name db ASM_NAME
+    count dw 0
+    retaddr dw 0
 
 times 510 - ($-$$) db 0 ; pad remaining 510 bytes with zeroes
 dw 0xaa55 ; magic bootloader magic - marks this 512 byte sector bootable!
