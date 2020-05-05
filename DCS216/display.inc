@@ -1,6 +1,7 @@
 bits 16 ; tell NASM this is 16 bit code
 org 0x100 ; tell NASM to start outputting stuff at offset 0x7c00
 
+section .text
 boot:
     ; mov [retaddr], ax
     ; mov  bp, 7C00h
@@ -30,7 +31,7 @@ boot:
 loop:
 print:
     inc word [count]
-    cmp word [count], 10
+    cmp word [count], 64
     jge exit
 ;     table[row][col] = '*';
     xor bx, bx      ; bx = 0
@@ -187,7 +188,8 @@ exit:
     ; mov ax, [retaddr]
     ; jmp [retaddr]
     ret
-data:
+
+section .data
     color db 0
     sax dw 0
     sbx dw 0
@@ -206,5 +208,4 @@ data:
     count dw 0
     retaddr dw 0
 
-times 510 - ($-$$) db 0 ; pad remaining 510 bytes with zeroes
-dw 0xaa55 ; magic bootloader magic - marks this 512 byte sector bootable!
+section .bss
