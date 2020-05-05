@@ -16,15 +16,41 @@ _start:
     mov sp, bp
 
 another:
-    ; mov byte[bp], '0'
-    mov word[bpp], bp
-    mov bp, message
+; DOS 1+ - SELECT DEFAULT DRIVE
+    ; 
+    ; AH = 0Eh
+    ; DL = new default drive (00h = A:, 01h = B:, etc)
+    mov ah, 0Eh
+    int 21h
+    ; DISK - READ SECTOR(S) INTO MEMORY
+    ; 
+    ; AH = 02h
+    ; AL = number of sectors to read (must be nonzero)
+    ; CH = low eight bits of cylinder number
+    ; CL = sector number 1-63 (bits 0-5)
+    ; high two bits of cylinder (bits 6-7, hard disk only)
+    ; DH = head number
+    ; DL = drive number (bit 7 set for hard disk)
+    ; ES:BX -> data buffer
+    ; 
+    mov ax, LOAD_SECTION
+    mov es, ax
+    mov bx, SECTION_OFFSET
+    mov ax, 0201h
+    mov dh, 00h
+    ; mov dl, 02h
+    mov ch, 00h
+    mov cl, 02h
+    int 13h
+
+    mov [bpp], bp
+    mov bp, bx
     mov ax, 1301h
     mov bx, 000Fh
-    mov cx, len
+    mov cx, 0xAA
     mov dx, 0000h
     int 10h
-    mov bp, word[bpp]
+    mov bp, [bpp]
 
     ; read character input
     mov ah, 0x00

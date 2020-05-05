@@ -1,5 +1,5 @@
-a - display at top-left
-b - display at top-right
-c - display at bottom-left
-d - display at bottom-right
-Press key to execute program:
+Press key to execute program:   
+a - display at top-left         
+b - display at top-right        
+c - display at bottom-left      
+d - display at bottom-right     

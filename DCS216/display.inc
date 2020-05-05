@@ -30,7 +30,7 @@ boot:
 loop:
 print:
     inc word [count]
-    cmp word [count], 512
+    cmp word [count], 10
     jge exit
 ;     table[row][col] = '*';
     xor bx, bx      ; bx = 0
