@@ -45,7 +45,7 @@ another:
     jle read_cmd ; if command not present
     cmp al, 'a'
     jl another
-    sub al, 'a' - 3
+    add cl, 'a'
     cmp al, cl ; ax <= cl
     jle read
     jmp another
@@ -87,9 +87,9 @@ cmd_rd:
     ; read character input
     mov ah, 0x00
     int 0x16
-    cmp al, 0x0D
+    cmp al, 0x0D ; CR
     je cmd_fin
-    cmp al, 0x0A
+    cmp al, 0x0A ; LF
     je cmd_fin
     push ax
 
@@ -104,6 +104,11 @@ cmd_rd:
     int 10h
     inc dx
 
+    cmp al, 0x08 ; backslash
+    jne cmd_rd
+
+    pop ax
+    pop ax
     jmp cmd_rd
 cmd_fin:
     jmp another
@@ -111,6 +116,7 @@ cmd_fin:
 read:
     ; compute disk sector id
     mov cl, al
+    sub cl, 'a' - 3
 
     mov dl, byte [drive]
     ; DISK - READ SECTOR(S) INTO MEMORY
