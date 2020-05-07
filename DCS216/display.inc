@@ -187,7 +187,7 @@ fwd4:
 exit:
     ; mov ax, [retaddr]
     ; jmp [retaddr]
-    ret
+    retf
 
 section .data
     color db 0

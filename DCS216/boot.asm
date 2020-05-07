@@ -142,7 +142,7 @@ read:
 
     ; execute user program
     ; mov ax, [another]
-    call (LOAD_SECTION << 4 + SECTION_OFFSET)
+    call LOAD_SECTION:SECTION_OFFSET
 
     xor cx, cx
     xor dx, dx
