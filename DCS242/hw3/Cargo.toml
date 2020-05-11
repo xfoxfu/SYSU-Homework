@@ -1,0 +1,10 @@
+[package]
+name = "hw3"
+version = "0.1.0"
+authors = ["Yuze Fu <i@xfox.me>"]
+edition = "2018"
+
+[dependencies]
+llvm-ir = "0.5.3"
+clap = "3.0.0-beta.1"
+either = "1.5.3"

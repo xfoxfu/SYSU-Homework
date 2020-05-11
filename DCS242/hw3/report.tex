@@ -1,0 +1,536 @@
+%!TEX program = xelatex
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Thin Sectioned Essay
+% LaTeX Template
+% Version 1.0 (3/8/13)
+%
+% This template has been downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original Author:
+% Nicolas Diaz (nsdiaz@uc.cl) with extensive modifications by:
+% Vel (vel@latextemplates.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+% PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[a4paper, 12pt]{article} % Font size (can be 10pt, 11pt or 12pt) and paper size (remove a4paper for US letter paper)
+\usepackage[table]{xcolor}
+\usepackage{fontspec}
+
+% \setmainfont{Avenir Next}
+% \setsansfont{Avenir Next}
+\setmonofont[AutoFakeSlant=0.25]{Fira Code}
+
+\usepackage{xeCJK}
+\setCJKmainfont[AutoFakeSlant=0.25]{SourceHanSerifSC-Regular}
+\setCJKsansfont[AutoFakeSlant=0.25]{SourceHanSansSC-Regular}
+\setCJKmonofont[AutoFakeSlant=0.25]{Sarasa Mono SC}
+
+\usepackage{geometry}
+\geometry{left=2.54cm, top=2.54cm, right=2.54cm, bottom=2.54cm}
+\usepackage{subcaption}
+\usepackage{tikz}
+\usetikzlibrary{tikzmark}
+\usepackage{listings, listings-rust}
+\usepackage{color}
+\usepackage{forest}
+\usepackage{float}
+\usepackage{makecell}
+\usepackage{amsmath}
+% \usepackage{mathspec}
+\usepackage{textcomp}
+\usepackage[binary-units]{siunitx}
+\usepackage{hyperref}
+\usepackage{mathtools}
+% \hypersetup{hidelinks}
+\hypersetup{
+  colorlinks   = true, %Colours links instead of ugly boxes
+  urlcolor   = blue, %Colour for external hyperlinks
+  linkcolor  = blue, %Colour of internal links
+  citecolor   = red %Colour of citations
+}
+
+\lstset{% frame=tb,
+  language=rust,
+  % aboveskip=3mm,
+  % belowskip=3mm,
+  showstringspaces=false,
+  keepspaces=false,
+  % columns=flexible,
+  numbers=left,
+  basicstyle=\ttfamily\small,
+  keywordstyle=\bfseries\color{blue},
+  commentstyle=\itshape\color{green!50!black},
+  identifierstyle=\color{black},
+  stringstyle=\color{orange!60!black},
+  breaklines=true,
+  breakatwhitespace=true,
+  captionpos=b,
+  % frame=bottomline,
+  extendedchars=true,
+  tabsize=4
+}
+\newcounter{code}
+\lstnewenvironment{code}[3][rust]%
+  {%
+  \renewcommand\lstlistingname{代码}
+  \lstset{% frame=tb,
+  language=#1,
+  caption=#2,
+  label=#3,
+  }
+  }{}
+
+\usepackage{fancyhdr}
+\usepackage{lastpage}
+\pagestyle{fancy}
+\fancyhead[L]{\Title}
+\fancyhead[C,R]{}
+\fancyfoot[L,C]{}
+% \fancyfoot[L]{\Title}
+\fancyfoot[R]{第 \thepage 页，共 \pageref{LastPage} 页}
+% \fancyfoot[C]{\thepage/\pageref{LastPage}}
+\renewcommand{\headrulewidth}{0pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% \usepackage[protrusion=true]{microtype} % Better typography
+\usepackage{graphicx} % Required for including pictures
+\usepackage{wrapfig} % Allows in-line images
+\usepackage{longtable}
+\usepackage{newfloat}
+\usepackage{enumitem}
+\usepackage{multirow}
+\usepackage{multicol}
+
+\usepackage{mathpazo} % Use the Palatino font
+\usepackage[T1]{fontenc} % Required for accented characters
+\linespread{1.2} % Change line spacing here, Palatino benefits from a slight increase by default
+\setlength{\parskip}{0.5em}
+
+\usepackage{indentfirst}
+\setlength{\parindent}{2em}
+
+\makeatletter
+\renewcommand\@biblabel[1]{\textbf{#1.}} % Change the square brackets for each bibliography item from '[1]' to '1.'
+\renewcommand{\@listI}{\itemsep=0pt} % Reduce the space between items in the itemize and enumerate environments and the bibliography
+
+\newcommand\numberthis{\addtocounter{equation}{1}\tag{\theequation}}
+\numberwithin{equation}{section}
+\DeclareMathAlphabet{\mathcal}{OMS}{cmsy}{m}{n}
+\SetMathAlphabet{\mathcal}{bold}{OMS}{cmsy}{b}{n}
+\newcommand{\bigO}{\mathcal{O}}
+
+\renewcommand{\maketitle}{ % Customize the title - do not edit title and author name here, see the TITLE block below
+\begin{center} % Right align
+{\LARGE\@title} % Increase the font size of the title
+
+\large{\@subtitle}
+
+\vspace{1em} % Some vertical space between the title and author name
+
+{\large\@author} % Author name
+% \\\@date % Date
+
+\vspace{1.5em} % Some vertical space between the author block and abstract
+\end{center}
+}
+
+\renewcommand\figurename{图}
+\renewcommand\tablename{表}
+\renewcommand\refname{参考文献}
+
+%----------------------------------------------------------------------------------------
+% TITLE
+%----------------------------------------------------------------------------------------
+
+\title{\textbf{矩阵乘法、内存带宽与性能计算}\\ % Title
+} % Subtitle
+\newcommand\@subtitle{Homework 2}
+\let\Title\@title
+
+\author{
+傅禹泽 17341039 \href{mailto:fuyz@mail2.sysu.edu.cn}{fuyz@mail2.sysu.edu.cn}} % Institution
+
+\date{2020年04月07日} % Date
+
+%----------------------------------------------------------------------------------------
+
+\begin{document}
+
+\thispagestyle{empty}
+% \maketitle % Print the title section
+
+%----------------------------------------------------------------------------------------
+% ABSTRACT AND KEYWORDS
+%----------------------------------------------------------------------------------------
+
+\renewcommand{\abstractname}{摘要} % Uncomment to change the name of the abstract to something else
+
+%----------------------------------------------------------------------------------------
+
+\section{问题描述}
+
+利用LLVM （C、C++）或者Soot （Java）等工具检测多线程程序中潜在的数据竞争以及是否存在不可重入函数，给出案例程序并提交分析报告。
+
+\section{解决方案与结果}
+
+\subsection{数据竞争检测}
+
+数据竞争是多线程应用程序中常见的引起 bug 的位点，利用工具检测数据竞争可以降低应用程序因多线程并行编程的特性产生的问题。一般来说，数据竞争的检测可以分为静态分析和动态分析两种方法，各自存在一些优缺点，接下来将分别介绍基于 LLVM 的动态检测方法（适用于 C、C++ 语言）和基于 rustc 的静态检测方法（适用于 Rust 语言）。
+
+\subsubsection{基于 LLVM 的动态检测方法}
+
+根据 LLVM 关于 \href{https://clang.llvm.org/docs/ThreadSanitizer.html}{ThreadSanitizer} 的介绍，只要编译时启用 \texttt{-fsanitize=thread}，就可以构建出会利用 ThreadSanitizer 检测数据竞争的二进制。
+
+参考介绍，编写了一个简单的用作测试的程序，其代码见代码 \ref{code:race-c}。该程序会创建一个进程，并同时在主线程和子线程中修改全局变量的值。显然，该代码将会引起数据竞争。
+
+\begin{code}[c]{数据竞争样例代码}{code:race-c}
+  #include <pthread.h>
+  #include <stdio.h>
+  #include <stdlib.h>
+  
+  int Global;
+  
+  void *Thread1(void *x) {
+  Global = 42;
+  return x;
+  }
+  
+  int main() {
+  pthread_t t;
+  pthread_create(&t, NULL, Thread1, NULL);
+  Global = 43;
+  pthread_join(t, NULL);
+  Thread1(NULL);
+  return Global;
+  }  
+\end{code}
+
+利用命令 \texttt{clang test.c -o test.o -lpthread -Wall -Wextra \\-fsanitize=thread -g -O1} 编译应用程序后，获得了 \url{test.o} 可执行文件。执行该可执行文件以后，将会获得程序执行过程中的数据竞争的提示，如代码 \ref{code:ts-report} 所示。
+
+\begin{code}[{}]{数据竞争报告}{code:ts-report}
+  ==================
+  WARNING: ThreadSanitizer: data race (pid=27718)
+  Write of size 4 at 0x000103b9f05c by thread T1:
+    #0 Thread1 test.c:11 (test.o:x86_64+0x100000df5)
+
+  Previous write of size 4 at 0x000103b9f05c by main thread:
+    #0 main test.c:19 (test.o:x86_64+0x100000e59)
+
+  Location is global 'Global' at 0x000103b9f05c (test.o+0x00010000205c)
+
+  Thread T1 (tid=3035996, running) created by main thread at:
+    #0 pthread_create <null>:1064336 (libclang_rt.tsan_osx_dynamic.dylib:x86_64h+0x2aacd)
+    #1 main test.c:18 (test.o:x86_64+0x100000e4a)
+
+  SUMMARY: ThreadSanitizer: data race test.c:11 in Thread1
+  ==================
+  Hello world!Hello world!ThreadSanitizer: reported 1 warnings
+  [1]  27718 abort    ./test.o
+\end{code}
+
+从中可以看出，ThreadSanitizer 成功检测到了程序的数据竞争，并且报告了相关的位置。利用 ThreadSanitizer 可以有效地检测运行时发生的可能数据竞争，从而提高程序的安全性。
+
+ThreadSanitizer 实际上属于一种动态分析的数据竞争检测方法。这种方法优点是，代码可以以普通的方法进行开发，并不需要为了检测数据竞争而调整程序的开发模式，而是在程序开发结束后，通过动态地运行程序来检测数据竞争。但是，这种方法也有一定的缺陷，其不能够检测到所有的数据竞争，其只能够在程序运行的过程中，根据程序执行的实际情况去探测数据竞争。如果程序运行的时间较长、逻辑较为复杂，就可能无法触发一些特定的数据竞争位置，从而无法为 ThreadSanitizer 探测。因此，利用 ThreadSanitizer 虽然可以保障开发的效率，但是无法充分保障对程序线程安全的信心。
+
+\subsubsection{基于 rustc 的静态检测方法}
+
+如第一次作业报告中所述，Rust 语言提供的变量所有权和生命周期的概念，有助于减少并行程序的数据竞争问题。此方案是基于静态分析实现的，其通过向引用类型附加额外的命（\textit{lifetime}）元数据，并且区分独占（\textit{mut}）和非独占引用，来实现对数据竞争的检测和避免。
+
+假定值类型为 \lstinline{T}，Rust 的所有权模型可以描述为：
+
+\begin{itemize}
+  \item 每个值只有一个名字可以拥有它，即只能有一个变量类型为 \lstinline{T}；
+  \item 可以有任意数量的非独占引用（只读引用），即可以有任意数量的变量类型为 \lstinline{&T}；
+  \item 同时只能存在一个独占引用（可变引用），在存在独占引用时不能有任何非独占引用，即只能有一个变量类型为 \lstinline{&mut T}。
+\end{itemize}
+
+采取这样的内存模型，Rust 能够保证，对于任意一个值，其只可能存在以下两种情形之一：
+
+\begin{itemize}
+  \item 有多个代码共享其的只读访问；
+  \item 单一的代码拥有其可写访问。
+\end{itemize}
+
+因此，就能够保障程序不存在任何的数据竞争。但是，这样的模型可能会限制程序的表达能力，因此 Rust 提供了在代码中显式关闭内存安全检查的方法，即 \lstinline{unsafe} 块。
+
+与代码 \ref{code:race-c} 等价的 Rust 版本代码如代码 \ref{code:race-rs} 所示。
+
+\begin{code}{Rust 版本数据竞争}{code:race-rs}
+  static mut Global: usize = 42;
+
+  fn Thread1() {
+    Global = 42;
+  }
+  
+  fn main() {
+    let th = std::thread::spawn(Thread1);
+    Global = 43;
+    th.join();
+  }  
+\end{code}
+
+该代码编译后，其编译错误如代码 \ref{code:ts-report-rust} 所示。Rust 语言能够依靠静态分析检查出程序潜在的数据竞争，并由此阻止编译过程。
+
+\begin{code}[{}]{编译错误提示}{code:ts-report-rust}
+  error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> race.rs:4:5
+   |
+ 4 |   Global = 42;
+   |   ^^^^^^^^^^^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+ 
+ error[E0133]: use of mutable static is unsafe and requires unsafe function or block
+  --> race.rs:9:5
+   |
+ 9 |   Global = 43;
+   |   ^^^^^^^^^^^ use of mutable static
+   |
+   = note: mutable statics can be mutated by multiple threads: aliasing violations or data races will cause undefined behavior
+ 
+ error: aborting due to 2 previous errors
+ 
+ For more information about this error, try `rustc --explain E0133`.
+\end{code}
+
+而即使不使用全局变量，Rust 也能够检测到传递的引用及其所有权和生命周期，从而探测到可能的数据竞争。这一特性在 Rust 中被称为借用检查器（\textit{borrow checker}）的分析工具实现，该工具默认就嵌入到 Rust 语言中。
+
+\begin{code}{另一种数据竞争}{code:race-rs2}
+  fn Thread1(Global: &mut isize) {
+    *Global = 42;
+  }
+
+  fn main() {
+    let mut Global: isize = 0;
+    let th = std::thread::spawn(|| Thread1(&mut Global));
+    Global = 43;
+    th.join();
+  }
+\end{code}
+
+代码 \ref{code:race-rs2} 将产生代码 \ref{code:race-rs-2-report} 所示的错误报告，可见 Rust 检测出了其中的数据竞争。
+
+\begin{code}[{}]{错误报告}{code:race-rs-2-report}
+  error[E0373]: closure may outlive the current function, but it borrows `Global`, which is owned by the current function
+  --> race.rs:7:33
+   |
+ 7 |   let th = std::thread::spawn(|| Thread1(&mut Global));
+   |                 ^^        ------ `Global` is borrowed here
+   |                 |
+   |                 may outlive borrowed value `Global`
+   |
+ note: function requires argument type to outlive `'static`
+  --> race.rs:7:14
+   |
+ 7 |   let th = std::thread::spawn(|| Thread1(&mut Global));
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ help: to force the closure to take ownership of `Global` (and any other referenced variables), use the `move` keyword
+   |
+ 7 |   let th = std::thread::spawn(move || Thread1(&mut Global));
+   |                 ^^^^^^^
+ 
+ error[E0506]: cannot assign to `Global` because it is borrowed
+  --> race.rs:8:5
+   |
+ 7 |   let th = std::thread::spawn(|| Thread1(&mut Global));
+   |        -------------------------------------------
+   |        |          |         |
+   |        |          |         borrow occurs due to use in closure
+   |        |          borrow of `Global` occurs here
+   |        argument requires that `Global` is borrowed for `'static`
+ 8 |   Global = 43;
+   |   ^^^^^^^^^^^ assignment to borrowed `Global` occurs here
+ 
+ error: aborting due to 2 previous errors
+ 
+ Some errors have detailed explanations: E0373, E0506.
+ For more information about an error, try `rustc --explain E0373`. 
+\end{code}
+
+从上可见，Rust 基于静态分析的方法能够最大限度地发现一切可能的数据竞争，但是也会限制程序的表达能力。因此，其限制了开发的效率，同时，因为其需要调整程序语言的类型系统，因此虽然现有一些尝试将 Rust 的分析方法移植给其它语言，但这种尝试非常初步，同时也要求程序员更换工具链，成本较高。
+
+\subsection{不可重入函数检测}
+
+不可重入指的是，当某函数的现有调用被信号处理等打断，同时信号处理也调用了该函数时，函数的两次调用会互相影响的情况。检测不可重入函数有助于发现并行程序的潜在错误点。
+
+总的来说，不可重入函数具备以下特征之一：
+
+\begin{itemize}
+  \item 使用了全局变量或静态变量；
+  \item 使用了堆内存；
+  \item 调用了其他不可重入函数；
+  \item 调用了标准 I/O。
+\end{itemize}
+
+本次选择利用 Rust 语言编写 LLVM IR Bytecode 的自动分析工具，以实现初步的对程序可重入性的自动分析功能。鉴于 LLVM 已经提供了较好的 C++ API 来解析其 IR Bytecode，因此可以直接使用 Rust 的 \texttt{llvm-ir} 库来处理 LLVM IR，其是对 LLVM C++ API 的二次封装。
+
+\subsubsection{LLVM IR 生成}
+
+LLVM IR 有两种表达方法，一种是文本形式，另外一种是 Bytecode。文本形式的代码比较便于阅读，而 Bytecode 则便于程序处理。
+
+通过代码 \ref{code:ir-gen} 中的命令分别可生成 LLVM IR 文本表示和 Bytecode 表示。
+
+\begin{code}[sh]{生成 LLVM IR}{code:ir-gen}
+  clang -c -emit-llvm src.c -o src.bc -g -O1  # bytecode
+  clang -c -emit-llvm src.c -S -o src.ll -g -O1 # plain text
+\end{code}
+
+\subsubsection{LLVM IR 分析}
+
+采用 Rust 加载 LLVM IR Bytecode 后，能够得到结构化的 Bytecode 数据。采取不同的策略对其中的语句进行检测，就可以得到分析结果，进而判断各个函数是否是不可重入的。
+
+在目前的版本中，实现了如下几种策略：
+
+\begin{itemize}
+  \item 不能够调用堆内存分配函数；
+  \item 不能够使用 I/O；
+  \item 不能够访问全局变量。
+\end{itemize}
+
+受时间所限，实现的规则较为原始。对于前两项检查，具体实现上通过限制调用 \texttt{malloc}、\texttt{printf} 等函数实现，如代码 \ref{code:check-heap} 所示。
+
+\begin{code}{堆内存及 I/O 检查实现}{code:check-heap}
+  impl Rule for NoIO {
+    fn check(f: &Instruction, context: &mut Context) -> bool {
+      if let Instruction::Call(Call {
+        function:
+          either::Either::Right(
+          Operand::ConstantOperand(
+            Constant::GlobalReference {
+            name: Name::Name(name),
+            ..
+          })),
+        ..
+      }) = f
+      {
+        name != "printf" && name != "scanf"
+      } else {
+        true
+      }
+    }
+    fn name<'a>() -> &'a str {
+      "No I/O Call"
+    }
+  }
+
+  impl Rule for NoMalloc {
+    fn check(f: &Instruction, context: &mut Context) -> bool {
+      if let Instruction::Call(Call {
+        function:
+          either::Either::Right(
+          Operand::ConstantOperand(
+            Constant::GlobalReference {
+            name: Name::Name(name),
+            ..
+          })),
+        ..
+      }) = f
+      {
+        name != "malloc" && name != "free"
+      } else {
+        true
+      }
+    }
+    fn name<'a>() -> &'a str {
+      "No Heap Allocation"
+    }
+  }
+\end{code}
+
+而对于无全局变量使用，则匹配不同的指令类型，并识别其操作数的来源，从而确定其是否使用了全局变量。因为指令类型繁多，为了代码简洁明了，采用宏进行自动代码生成，部分代码如代码 \ref{code:check-global} 所示。
+
+\begin{code}{全局变量使用检查}{code:check-global}
+  macro_rules! check_inst_match {
+    ($out:ident, $($inst:ident => $($operand:ident)|*),*) => {
+      match $out {
+        $(llvm_ir::Instruction::$inst(llvm_ir::instruction::$inst { $($operand,)* .. }) =>
+          !($($operand.is_global()||)* false)),*
+      }
+    }
+  }
+
+  impl Rule for NoGlobal {
+    fn check(f: &Instruction, context: &mut Context) -> bool {
+      check_inst_match!(f,
+        Add => operand0 | operand1,
+        Sub => operand0 | operand1,
+        // ......
+      )
+    }
+    fn name<'a>() -> &'a str {
+      "No Global Variable Reference"
+    }
+  }
+\end{code}
+
+目前的实现上存在一定的缺陷，如实际上不是所有对全局变量、堆内存分配等的使用都会导致函数不可重入，此外也只能检测 C 语言利用 \texttt{malloc}、\texttt{printf} 等函数进行的操作，而无法识别如 C++ \texttt{new} 等操作。
+
+另外，目前尚未实现对不可重入函数的调用。虽然代码中提供了 \lstinline{context: &mut Context} 分析上下文的支持，但是因为目前架构是基于指令而非函数的分析方法，同时受开发时间所限，因此尚不能分析对不可重入函数的调用。
+
+\subsubsection{分析结果}
+
+对于例程代码 \ref{code:unsafe}，对其进行分析的结果如代码 \ref{code:unsafe-report} 所示。
+
+\begin{code}[c]{不可重入例程}{code:unsafe}
+  #include <pthread.h>
+  #include <stdio.h>
+  #include <stdlib.h>
+  
+  int Global;
+  
+  void *Thread1(void *x) {
+    static int ssss = 5;
+    ssss += 1;
+    printf("Hello world!");
+    Global = 42;
+    x = malloc(sizeof(int));
+    return x;
+  }
+  
+  int main() {
+    pthread_t t;
+    pthread_create(&t, NULL, Thread1, NULL);
+    Global = 43;
+    pthread_join(t, NULL);
+    Thread1(NULL);
+    return Global;
+  }  
+\end{code}
+
+\begin{code}[{}]{分析报告}{code:unsafe-report}
+  llvm return: exit code: 0
+  violation of No Global Variable Reference in ./test.c:9:8
+  violation of No Global Variable Reference in ./test.c:9:8
+  violation of No I/O Call in ./test.c:10:3
+  violation of No Global Variable Reference in ./test.c:11:10
+  violation of No Heap Allocation in ./test.c:12:7
+  Thread1 => false
+  violation of No Global Variable Reference in ./test.c:19:10
+  violation of No Global Variable Reference in ./test.c:22:10
+  main => false
+\end{code}
+
+其中，分析程序将首先调用 LLVM 构建 bytecode 临时文件，然后加载临时文件进行分析，分析过程见上文。可以看出，程序能够分析出样例程序中对全局变量、I/O 调用和堆内存分配的使用，从而判断 \texttt{Thread1} 和 \texttt{main} 都不是可重入的。
+
+\section{总结}
+
+对于数据竞争和不可重入函数的分析，均存在着静态分析和动态分析两种方法。
+
+文中以 LLVM ThreadSanitizer 为例，说明了动态分析数据竞争的方法、运行效果和优缺点。此外文中以 Rust 为例，说明了静态分析的相关内容。可以看出，动态分析和静态分析各自都有一定的优缺点，采取动态分析和静态分析结合的分析方法有助于充分发现程序设计过程中引入的数据竞争，从而保证并行计算应用程序的安全性。
+
+利用静态分析发现全部可能的数据竞争，同时提供绕过数据竞争检查的机制，是 Rust 语言静态分析的一大特色。同时，笔者认为，这种方法代表了未来程序设计语言线程安全机制的发展方向。通过令绝大部分代码以静态分析安全的方法实现，同时提供绕过静态分析的机制来实现特殊情况和基础数据结构，并且利用动态分析、形式化证明等手段去验证其代码的安全性，将是未来可以预计的并行计算应用程序的主要开发模式。
+
+文中介绍了自行实现的基于 LLVM Bytecode 的函数重入检测方法。目前的程序尚非常原始，但能够运行，并且以假阳性率较高的形态充分检测出了程序中 I/O、堆内存及全局变量相关的不可重入点。今后可以考虑进一步基于目前的框架，增加对不可重入函数调用的分析，同时努力降低现有分析的假阳性率。
+
+%----------------------------------------------------------------------------------------
+
+\end{document}
