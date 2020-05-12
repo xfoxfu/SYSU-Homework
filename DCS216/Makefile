@@ -1,25 +1,27 @@
-CC=nasm
-CFLAGS=-f bin
+CC=x86_64-elf-gcc
+CPP=x86_64-elf-g++
+AS=nasm
+CFLAGS=-std=gnu17 -Os -nostdlib -m16 -march=i386 -ffreestanding -Wl,--nmagic,--script=linker.ld -Xlinker -melf_i386
 SDIR=src
 ODIR=dist
 BIN=$(ODIR)/os.img
 
-_OBJ = boot.bin display_bottom_left.bin display_bottom_right.bin display_top_left.bin display_top_right.bin
+_OBJ = bootloader kernel.bin crt0.o
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
-DEPS = display.inc executables.txt
+$(ODIR)/bootloader: boot.asm | $(ODIR)/
+	$(AS) -f bin -o $@ $<
 
-$(ODIR)/%.bin: %.asm $(DEPS) | $(ODIR)/
-	$(CC) $(CFLAGS) -o $@ $<
+$(ODIR)/crt0.o: crt0.asm linker.ld | $(ODIR)/
+	$(AS) -f elf32 -o $@ $<
+
+$(ODIR)/%.bin: %.c $(ODIR)/crt0.o | $(ODIR)/
+	$(CC) $(CFLAGS) -o $@ $^
 
 $(BIN): $(OBJ)
 	rm -rf $(BIN)
-	dd if=$(ODIR)/boot.bin                 of=$@ bs=512 count=1 seek=0 conv=notrunc
-	dd if=executables.txt                  of=$@ bs=512 count=1 seek=1 conv=notrunc
-	dd if=$(ODIR)/display_top_left.bin     of=$@ bs=512 count=1 seek=2 conv=notrunc
-	dd if=$(ODIR)/display_top_right.bin    of=$@ bs=512 count=1 seek=3 conv=notrunc
-	dd if=$(ODIR)/display_bottom_left.bin  of=$@ bs=512 count=1 seek=4 conv=notrunc
-	dd if=$(ODIR)/display_bottom_right.bin of=$@ bs=512 count=1 seek=5 conv=notrunc
+	dd if=$(ODIR)/bootloader of=$@ bs=512 count=1 seek=0 conv=notrunc
+	dd if=$(ODIR)/kernel.bin of=$@ bs=512 count=6 seek=1 conv=notrunc
 
 .PHONY: clean run
 
