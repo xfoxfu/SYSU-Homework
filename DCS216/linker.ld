@@ -1,5 +1,5 @@
 OUTPUT_FORMAT(binary)
-ENTRY(start)
+ENTRY(_start)
 SECTIONS
 {
     . = 0x0100;

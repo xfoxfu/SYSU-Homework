@@ -1,7 +1,7 @@
 CC=x86_64-elf-gcc
 CPP=x86_64-elf-g++
 AS=nasm
-CFLAGS=-std=gnu17 -Os -nostdlib -m16 -march=i386 -ffreestanding -Wl,--nmagic,--script=linker.ld -Xlinker -melf_i386
+CFLAGS=-std=gnu17 -O0 -nostdlib -m16 -masm=intel -ffreestanding -Wl,--nmagic,--script=linker.ld -Xlinker -melf_i386
 SDIR=src
 ODIR=dist
 BIN=$(ODIR)/os.img
