@@ -48,7 +48,7 @@ load:
 kstart:
     lea si, [msg_ok]
     call print_str
-    call KERNEL_SEGMNT:KERNEL_OFFSET
+    jmp KERNEL_SEGMNT:KERNEL_OFFSET
     jmp $
 
 error:
