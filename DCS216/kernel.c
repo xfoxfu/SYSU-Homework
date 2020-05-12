@@ -1,8 +1,8 @@
-#define VGA_BUFFER 0xB8000
+#define VGA_BUFFER ((char *)0xB8000)
 
 void syscall_display_set_char(int row, int col, char chr, unsigned char color) {
-  ((char *)VGA_BUFFER)[(row * 80 + col) * 2] = chr;
-  ((char *)VGA_BUFFER)[(row * 80 + col) * 2 + 1] = color;
+  VGA_BUFFER[(row * 80 + col) * 2] = chr;
+  VGA_BUFFER[(row * 80 + col) * 2 + 1] = color;
 }
 
 void syscall_sleep(int time_ms) {
@@ -15,10 +15,9 @@ void syscall_sleep(int time_ms) {
                : "ah");
 }
 
-void syscall_display_get_char(int row, int col, char *chr,
-                              unsigned char *color) {
-  *chr = ((char *)VGA_BUFFER)[(row * 80 + col) * 2];
-  *color = ((char *)VGA_BUFFER)[(row * 80 + col) * 2 + 1];
+void syscall_display_get_char(int row, int col, char *chr, char *color) {
+  *chr = VGA_BUFFER[(row * 80 + col) * 2];
+  *color = VGA_BUFFER[(row * 80 + col) * 2 + 1];
 }
 
 #define VGA_Black 0x0

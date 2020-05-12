@@ -6,6 +6,8 @@ org  0x7c00 ; expected to be loaded at 0x7c00 (bootloader)
 ; load kernel at 800:100 (0x8000)
 KERNEL_SEGMNT equ 800h
 KERNEL_OFFSET equ 100h
+KERNEL_SECLEN equ 200h
+KERNEL_SECEND equ KERNEL_OFFSET + 200h * 6
 
 ; section .boot
 boot:
@@ -29,14 +31,21 @@ boot:
     mov ax, KERNEL_SEGMNT
     mov es, ax
     mov bx, KERNEL_OFFSET
-    mov ax, 0201h
     ; mov dh, 00h
     mov dx, 0000h
     mov dl, byte [disk]
     mov cx, 0002h
-    int 13h
-
+load:
+    mov ax, 0201h
+    int 13h ; OUT CF AH AL
     jc error ; error handling
+    cmp bx, KERNEL_SECEND
+    jge kstart
+    add bx, KERNEL_SECLEN
+    inc cl
+    jmp load
+
+kstart:
     lea si, [msg_ok]
     call print_str
     call KERNEL_SEGMNT:KERNEL_OFFSET

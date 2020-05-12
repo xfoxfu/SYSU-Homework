@@ -32,3 +32,9 @@ print_str: ; IN si start address
 
 msg_ok:   db "Kernel entry" , 0x0D, 0x0A, 0x00
 msg_exit: db "Kernel exited", 0x0D, 0x0A, 0x00
+
+section .bss
+align 4
+kernel_stack_bottom: equ $
+    resb 16384 ; 16 KB
+kernel_stack_top:
