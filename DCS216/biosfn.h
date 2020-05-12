@@ -1,6 +1,7 @@
 void syscall_display_set_char(int row, int col, char chr, unsigned char color);
 void syscall_sleep(int time_ms);
 void syscall_display_get_char(int row, int col, char *chr, char *color);
+void display(short x, short y, short xm, short ym);
 
 #define VGA_Black 0x0
 #define VGA_Blue 0x1

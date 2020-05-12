@@ -33,5 +33,5 @@ print_str: ; IN si start address
         ret
 
 section .data
-msg_ok:   db "Kernel entry" , 0x0D, 0x0A, 0x00
-msg_exit: db "Kernel exited", 0x0D, 0x0A, 0x00
+msg_ok:   db "Program entry" , 0x0D, 0x0A, 0x00
+msg_exit: db "Program exited", 0x0D, 0x0A, 0x00
