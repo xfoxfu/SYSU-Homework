@@ -59,8 +59,16 @@ void kmain(void) {
       syscall_display_set_char(row, col + 1 + i, NAME[i], color);
     }
 
-    int col_old = col;
-    int row_old = row;
+    syscall_sleep(25000);
+
+    for (int i = 0; i < 8; i++) {
+      if (col + 1 + i > 79) {
+        break;
+      }
+
+      syscall_display_set_char(row, col + 1 + i, protect[2 * i],
+                               protect[2 * i + 1]);
+    }
 
     col += col_incr;
     row += row_incr;
@@ -78,16 +86,5 @@ void kmain(void) {
     }
     if (color > VGA_White)
       color = VGA_Blue;
-
-    syscall_sleep(25000);
-
-    for (int i = 0; i < 8; i++) {
-      if (col_old + 1 + i > 79) {
-        break;
-      }
-
-      syscall_display_set_char(row_old, col_old + 1 + i, protect[2 * i],
-                               protect[2 * i + 1]);
-    }
   }
 }
