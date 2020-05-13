@@ -2,7 +2,8 @@
 #include <stdint.h>
 
 const char *prompt_command = "xfoxos> ";
-const char *help = "Help:\n\r"
+const char *help = "==================\n\r"
+                   "Help:\n\r"
                    "h - help\n\r"
                    "x - exit\n\r"
                    "l - list commands\n\r"
@@ -13,16 +14,14 @@ const char *invalid_exec = "Invalid executable. \n\r";
 
 uint8_t count_executables() {
   int8_t disc = syscall_get_default_drive();
-  syscall_load_sector(0x0A00, 0x0000, 0x00, 10, 1);
-  uint8_t err = syscall_status_last_op(disc);
+  uint8_t err = load_sector(0x0A00, 0x0000, 0x00, 10, 1);
   if (err) {
     print_str(error_occurred);
-    syscall_put_char('A');
     print_u8_hex(err);
     print_str("\n\r");
     return 0;
   }
-  uint8_t count;
+  uint8_t count = 0;
   for (uint8_t i = 0; i < 0x0200; i++) {
     print_u8_hex(count);
     print_str(msg_is);
@@ -48,11 +47,9 @@ uint8_t print_help() {
 
 void run(uint8_t id) {
   int8_t disc = syscall_get_default_drive();
-  syscall_load_sector(0x0A00, 0x0100, 0x00, id * 3 + 11, 3);
-  uint8_t err = syscall_status_last_op(disc);
+  uint8_t err = load_sector(0x0A00, 0x0100, 0x00, id * 3 + 11, 3);
   if (err) {
     print_str(error_occurred);
-    syscall_put_char('A');
     print_u8_hex(err);
     print_str("\n\r");
     return;
@@ -60,8 +57,8 @@ void run(uint8_t id) {
   syscall_far_jump_A00();
 }
 void kmain(void) {
+  uint8_t execs = print_help();
   for (;;) {
-    uint8_t execs = print_help();
     print_str(prompt_command);
     // read command
     int8_t command[80];
@@ -94,7 +91,7 @@ void kmain(void) {
       } else if (command[i] == 'x') {
         return;
       } else {
-        if (command[i] >= execs) {
+        if (command[i] >= execs + '0') {
           print_str(invalid_exec);
           continue;
         }

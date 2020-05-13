@@ -166,7 +166,7 @@ void syscall_put_char(int8_t ch) {
 
 void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                          int8_t sector, uint8_t length) {
-  asm volatile("pusha          \n" // too many reg used, protect them all
+  asm volatile("pushad         \n" // too many reg used, protect them all
                "pushw es       \n"
                "mov   bx, %0   \n"
                "mov   es, bx   \n"
@@ -179,11 +179,11 @@ void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                "mov   cl, %3   \n"
                "int   0x13     \n"
                "popw  es       \n"
-               "popa           \n"
+               "popad          \n"
                : /* no output */
                : "m"(segment), "m"(offset), "m"(disc), "m"(sector), "m"(length)
                // cannot put these as registers
-               : "memory");
+               : "ax", "bx", "cx", "dx", "memory");
 }
 
 void syscall_far_jump_A00() {
