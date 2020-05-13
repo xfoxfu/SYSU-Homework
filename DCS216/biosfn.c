@@ -107,3 +107,55 @@ int8_t syscall_get_key_block(void) {
       : "ax");
   return key;
 }
+
+int8_t syscall_get_default_drive(void) {
+  int8_t drive;
+  asm("mov ah, 0x0E \n"
+      "int 0x21     \n"
+      "mov %0, dl   \n"
+      : "=r"(drive)
+      : /* no input */
+      : "al");
+  return drive;
+}
+
+int8_t syscall_status_last_op(int8_t disc) {
+  int8_t status;
+  asm("mov ah, 0x01 \n"
+      "mov dl, %0   \n"
+      "int 0x13     \n"
+      "mov %1, ah   \n"
+      : "=r"(status)
+      : "g"(disc)
+      : "ah");
+  return status;
+}
+
+void syscall_put_char(int8_t ch) {
+  asm("mov ah, 0x0E   \n"
+      "mov al, %0     \n"
+      "mov bx, 0x0000 \n"
+      "int 0x10       \n"
+      : /* no output */
+      : "g"(ch)
+      : "bx");
+}
+
+void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
+                         int8_t sector) {
+  asm volatile("push es        \n"
+               "mov  bx, %0     \n"
+               "mov  es, bx     \n"
+               "mov  bx, %1     \n"
+               "mov  ax, 0x0201 \n"
+               "mov  dh, 0x00   \n"
+               "mov  dl, %2     \n"
+               "mov  ch, 0x00   \n"
+               "mov  cl, %3     \n"
+               "int  0x13       \n"
+               "pop  es         \n"
+               : /* no output */
+               : "g"(segment), "g"(offset), "g"(disc), "g"(sector)
+               // cannot put these as registers
+               : "ah", "al", "memory");
+}

@@ -28,10 +28,10 @@ $(BIN): $(OBJ)
 	dd if=/dev/zero                        of=$@ bs=512 count=2880
 	dd if=$(ODIR)/bootloader               of=$@ bs=512 count=1 seek=0  conv=notrunc
 	dd if=$(ODIR)/kernel.com               of=$@ bs=512 count=6 seek=1  conv=notrunc
-	dd if=$(ODIR)/display_bottom_left.com  of=$@ bs=512 count=3 seek=7  conv=notrunc
-	dd if=$(ODIR)/display_bottom_right.com of=$@ bs=512 count=3 seek=10 conv=notrunc
-	dd if=$(ODIR)/display_top_left.com     of=$@ bs=512 count=3 seek=13 conv=notrunc
-	dd if=$(ODIR)/display_top_right.com    of=$@ bs=512 count=3 seek=16 conv=notrunc
+	dd if=$(ODIR)/display_top_left.com     of=$@ bs=512 count=3 seek=7 conv=notrunc
+	dd if=$(ODIR)/display_top_right.com    of=$@ bs=512 count=3 seek=10 conv=notrunc
+	dd if=$(ODIR)/display_bottom_left.com  of=$@ bs=512 count=3 seek=13  conv=notrunc
+	dd if=$(ODIR)/display_bottom_right.com of=$@ bs=512 count=3 seek=16 conv=notrunc
 
 .PHONY: clean run
 
