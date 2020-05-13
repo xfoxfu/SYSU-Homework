@@ -36,16 +36,6 @@ print_str: ; IN si start address
     .done:
         ret
 
-global syscall_far_jump_A00
-syscall_far_jump_A00:
-    pusha
-    call word 0x0A00:0x0100 ; TODO: find a way of using this in inline assembly
-    popa
-    mov  ax,  cs
-    mov  ds,  ax
-    mov  es,  ax
-    ret
-
 section .data
 msg_ok:   db "Program entry" , 0x0D, 0x0A, 0x00
 msg_exit: db "Program exited", 0x0D, 0x0A, 0x00

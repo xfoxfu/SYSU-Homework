@@ -143,19 +143,36 @@ void syscall_put_char(int8_t ch) {
 
 void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                          int8_t sector) {
-  asm volatile("push es        \n"
-               "mov  bx, %0     \n"
-               "mov  es, bx     \n"
-               "mov  bx, %1     \n"
-               "mov  ax, 0x0201 \n"
-               "mov  dh, 0x00   \n"
-               "mov  dl, %2     \n"
-               "mov  ch, 0x00   \n"
-               "mov  cl, %3     \n"
-               "int  0x13       \n"
-               "pop  es         \n"
+  asm volatile("pushw es        \n"
+               "mov   bx, %0     \n"
+               "mov   es, bx     \n"
+               "mov   bx, %1     \n"
+               "mov   ax, 0x0201 \n"
+               "mov   dh, 0x00   \n"
+               "mov   dl, %2     \n"
+               "mov   ch, 0x00   \n"
+               "mov   cl, %3     \n"
+               "int   0x13       \n"
+               "popw  es         \n"
                : /* no output */
                : "g"(segment), "g"(offset), "g"(disc), "g"(sector)
                // cannot put these as registers
                : "ah", "al", "memory");
+}
+
+void syscall_far_jump_A00() {
+  asm volatile("pusha              \n"
+               "callw 0x0A00:0x0100\n"
+               "popa               \n"
+               "mov   ax, cs       \n"
+               "mov   ds, ax       \n"
+               "mov   es, ax       \n"
+               : // no output
+               : // no input
+               : "ax");
+}
+
+void print_u8_hex(uint8_t num) {
+  syscall_put_char(num / 16 % 16 + '0');
+  syscall_put_char(num % 16 + '0');
 }

@@ -4,17 +4,11 @@
 void run(uint8_t id) {
   int8_t disc = syscall_get_default_drive();
   syscall_load_sector(0x0A00, 0x0100, disc, id * 3 + 8);
-  if (syscall_status_last_op(disc)) {
-    syscall_put_char('E');
-  }
+  print_u8_hex(syscall_status_last_op(disc));
   syscall_load_sector(0x0A00, 0x0300, disc, id * 3 + 9);
-  if (syscall_status_last_op(disc)) {
-    syscall_put_char('E');
-  }
+  print_u8_hex(syscall_status_last_op(disc));
   syscall_load_sector(0x0A00, 0x0500, disc, id * 3 + 10);
-  if (syscall_status_last_op(disc)) {
-    syscall_put_char('E');
-  }
+  print_u8_hex(syscall_status_last_op(disc));
   syscall_put_char('>');
   syscall_far_jump_A00();
 }

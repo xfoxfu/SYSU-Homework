@@ -11,19 +11,11 @@ int8_t syscall_get_key_block(void);
 int8_t syscall_get_default_drive(void);
 void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                          int8_t sector);
-// static inline void syscall_far_jump_A00() {
-//   asm volatile("pusha\n"
-//                "call dword 0x0A00:0x0100\n"
-//                "popa\n"
-//                "mov  ax, cs\n"
-//                "mov  ds, ax\n"
-//                "mov  es, ax\n"
-//                : // no output
-//                : // no input
-//                : "ax");
-// }
+void syscall_far_jump_A00();
 int8_t syscall_status_last_op(int8_t disc);
 void syscall_put_char(int8_t ch);
+void print_u8_hex(uint8_t num);
+void load_sector(int16_t segment, int16_t offset, int8_t disc, int8_t sector);
 
 #define VGA_Black 0x0
 #define VGA_Blue 0x1
