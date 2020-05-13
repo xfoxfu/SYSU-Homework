@@ -165,22 +165,23 @@ void syscall_put_char(int8_t ch) {
 }
 
 void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
-                         int8_t sector) {
-  asm volatile("pusha           \n" // too many reg used, protect them all
-               "pushw es         \n"
-               "mov   bx, %0     \n"
-               "mov   es, bx     \n"
-               "mov   bx, %1     \n"
-               "mov   ax, 0x0203 \n"
-               "mov   dh, 0x00   \n"
-               "mov   dl, %2     \n"
-               "mov   ch, 0x00   \n"
-               "mov   cl, %3     \n"
-               "int   0x13       \n"
-               "popw  es         \n"
-               "popa            \n"
+                         int8_t sector, uint8_t length) {
+  asm volatile("pusha          \n" // too many reg used, protect them all
+               "pushw es       \n"
+               "mov   bx, %0   \n"
+               "mov   es, bx   \n"
+               "mov   bx, %1   \n"
+               "mov   ah, 0x02 \n"
+               "mov   al, %4   \n"
+               "mov   dh, 0x00 \n"
+               "mov   dl, %2   \n"
+               "mov   ch, 0x00 \n"
+               "mov   cl, %3   \n"
+               "int   0x13     \n"
+               "popw  es       \n"
+               "popa           \n"
                : /* no output */
-               : "g"(segment), "g"(offset), "g"(disc), "g"(sector)
+               : "m"(segment), "m"(offset), "m"(disc), "m"(sector), "m"(length)
                // cannot put these as registers
                : "memory");
 }
@@ -198,18 +199,20 @@ void syscall_far_jump_A00() {
 }
 
 void print_u8_hex(uint8_t num) {
-  syscall_put_char(num / 100 % 10 + '0');
-  syscall_put_char(num / 10 % 10 + '0');
+  if ((num / 100 % 10) != 0)
+    syscall_put_char(num / 100 % 10 + '0');
+  if ((num / 10 % 10) != 0)
+    syscall_put_char(num / 10 % 10 + '0');
   syscall_put_char(num % 10 + '0');
 }
 
-uint8_t load_sector(int16_t segment, int16_t offset, int8_t disc,
-                    int8_t sector) {
-  syscall_load_sector(segment, offset, disc, sector);
+uint8_t load_sector(int16_t segment, int16_t offset, int8_t disc, int8_t sector,
+                    uint8_t length) {
+  syscall_load_sector(segment, offset, disc, sector, length);
   return syscall_status_last_op(disc);
 }
 
-void print_str(int8_t *str) {
+void print_str(const int8_t *str) {
   while (*str != '\0') {
     syscall_put_char(*str);
     str += 1;

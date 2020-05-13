@@ -1,5 +1,4 @@
-4 xfox OS, cmd rev ord         
-a - display at top-left       
-b - display at top-right      
-c - display at bottom-left    
-d - display at bottom-right   
+display at top-left
+display at top-right
+display at bottom-left
+display at bottom-right

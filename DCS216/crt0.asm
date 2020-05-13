@@ -16,20 +16,8 @@ _start:
     mov  sp,  100h
     mov  bp,  100h
 
-    lea si, [msg_ok]
-    call print_str
-
-    ; xor ax, ax
-    ; mov ds, ax
-
     extern kmain
     call dword kmain
-
-    mov  ax,  cs
-	mov  ds,  ax
-
-    lea si, [msg_exit]
-    call print_str
 
     mov ss, word [p_ss]
     mov sp, word [p_sp]

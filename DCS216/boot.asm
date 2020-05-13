@@ -36,7 +36,7 @@ boot:
     mov dl, byte [disk]
     mov cx, 0002h
 ; load:
-    mov ax, 0206h
+    mov ax, 0208h
     int 13h ; OUT CF AH AL
     jc error ; error handling
 
@@ -52,8 +52,8 @@ kstart:
     lea si, [msg_exit]
     call print_str
 
-    mov dx, 0x4240
-    mov cx, 0x000F
+    mov dx, 0x86A0
+    mov cx, 0x0001
     mov ax, 0x8600
     int 0x15
 
