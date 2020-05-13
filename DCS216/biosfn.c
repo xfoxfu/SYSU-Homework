@@ -138,12 +138,13 @@ void syscall_put_char(int8_t ch) {
       "int 0x10       \n"
       : /* no output */
       : "g"(ch)
-      : "bx");
+      : "ah", "bx");
 }
 
 void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                          int8_t sector) {
-  asm volatile("pushw es        \n"
+  asm volatile("pushad           \n" // too many reg used, protect them all
+               "pushw es         \n"
                "mov   bx, %0     \n"
                "mov   es, bx     \n"
                "mov   bx, %1     \n"
@@ -154,10 +155,11 @@ void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                "mov   cl, %3     \n"
                "int   0x13       \n"
                "popw  es         \n"
+               "popad            \n"
                : /* no output */
                : "g"(segment), "g"(offset), "g"(disc), "g"(sector)
                // cannot put these as registers
-               : "ah", "al", "memory");
+               : "memory");
 }
 
 void syscall_far_jump_A00() {
@@ -175,4 +177,38 @@ void syscall_far_jump_A00() {
 void print_u8_hex(uint8_t num) {
   syscall_put_char(num / 16 % 16 + '0');
   syscall_put_char(num % 16 + '0');
+}
+
+void load_sector(int16_t segment, int16_t offset, int8_t disc, int8_t sector) {
+  syscall_load_sector(segment, offset, disc, sector);
+  uint8_t err = syscall_status_last_op(disc);
+  if (err != 0x00)
+    print_u8_hex(err);
+}
+
+void print_str(int8_t *str) {
+  while (*str != '\0') {
+    syscall_put_char(*str);
+    str += 1;
+  }
+}
+
+void syscall_set_cursor_type(uint8_t type, uint8_t mode) {
+  asm("mov ah, 0x01 \n"
+      "mov ch, %1   \n"
+      "mov cl, %0   \n"
+      "int 0x10     \n"
+      : // no output
+      : "g"(type), "g"(mode)
+      : "ah", "ch", "cl");
+}
+void syscall_move_cursor(uint8_t row, uint8_t col) {
+  asm("mov ah, 0x02 \n"
+      "mov bh, 0x00 \n"
+      "mov dh, %0   \n"
+      "mov dl, %1   \n"
+      "int 0x10     \n"
+      : // no output
+      : "g"(row), "g"(col)
+      : "ah", "bh");
 }
