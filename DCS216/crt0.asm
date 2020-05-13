@@ -15,11 +15,15 @@ _start:
     mov ds, ax
 
     extern kmain
-    call kmain
+    call dword kmain
+
+    mov  ax,  cs
+	mov  ds,  ax
 
     lea si, [msg_exit]
     call print_str
-    jmp $
+
+    retf
 
 print_str: ; IN si start address
     lodsb

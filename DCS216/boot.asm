@@ -48,7 +48,14 @@ load:
 kstart:
     lea si, [msg_ok]
     call print_str
-    jmp KERNEL_SEGMNT:KERNEL_OFFSET
+    call KERNEL_SEGMNT:KERNEL_OFFSET
+
+    ; restore segments
+    xor ax, ax
+    mov ds, ax
+    mov es, ax
+    lea si, [msg_exit]
+    call print_str
     jmp $
 
 error:

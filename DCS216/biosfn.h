@@ -7,6 +7,7 @@ void syscall_display_get_char(int16_t row, int16_t col, int8_t *chr,
                               int8_t *color);
 void display(int8_t x, int8_t y, int8_t xm, int8_t ym);
 int8_t syscall_get_key_noblock(void);
+int8_t syscall_get_key_block(void);
 
 #define VGA_Black 0x0
 #define VGA_Blue 0x1

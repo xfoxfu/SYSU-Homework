@@ -24,7 +24,7 @@ void syscall_display_get_char(int16_t row, int16_t col, int8_t *chr,
   *color = VGA_BUFFER[(row * 80 + col) * 2 + 1];
 }
 
-void display(int8_t x, int8_t y, int8_t xm, int8_t ym) {
+void display(const int8_t x, const int8_t y, const int8_t xm, const int8_t ym) {
   char NAME[] = {'1', '7', '3', '4', '1', '0', '3', '9'};
   int col = x;
   int row = y;
@@ -73,5 +73,37 @@ void display(int8_t x, int8_t y, int8_t xm, int8_t ym) {
     }
     if (color > VGA_White)
       color = VGA_Blue;
+
+    if (syscall_get_key_noblock() == 'x') {
+      return;
+    }
   }
+}
+
+int8_t syscall_get_key_noblock(void) {
+  int8_t key;
+  asm("   mov ah, 0x01  \n"
+      "   int 0x16      \n"
+      "   jz  1f        \n"
+      "   mov ah, 0x00  \n"
+      "   int 0x16      \n"
+      "   mov %0, al    \n"
+      "   jmp 2f        \n"
+      "1: mov %0, 0x00  \n"
+      "2:               \n"
+      : "=r"(key)
+      : /* no input */
+      : "ax");
+  return key;
+}
+
+int8_t syscall_get_key_block(void) {
+  int8_t key;
+  asm("mov ah, 0x00 \n"
+      "int 0x16     \n"
+      "mov %0, al   \n"
+      : "=r"(key)
+      : /* no input */
+      : "ax");
+  return key;
 }
