@@ -145,9 +145,9 @@ int8_t syscall_get_default_drive(void) {
 int8_t syscall_status_last_op(int8_t disc) {
   int8_t status;
   asm("mov ah, 0x01 \n"
-      "mov dl, %0   \n"
+      "mov dl, %1   \n"
       "int 0x13     \n"
-      "mov %1, ah   \n"
+      "mov %0, ah   \n"
       : "=r"(status)
       : "g"(disc)
       : "ah");
@@ -166,19 +166,19 @@ void syscall_put_char(int8_t ch) {
 
 void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                          int8_t sector) {
-  asm volatile("pushad           \n" // too many reg used, protect them all
+  asm volatile("pusha           \n" // too many reg used, protect them all
                "pushw es         \n"
                "mov   bx, %0     \n"
                "mov   es, bx     \n"
                "mov   bx, %1     \n"
-               "mov   ax, 0x0201 \n"
+               "mov   ax, 0x0203 \n"
                "mov   dh, 0x00   \n"
                "mov   dl, %2     \n"
                "mov   ch, 0x00   \n"
                "mov   cl, %3     \n"
                "int   0x13       \n"
                "popw  es         \n"
-               "popad            \n"
+               "popa            \n"
                : /* no output */
                : "g"(segment), "g"(offset), "g"(disc), "g"(sector)
                // cannot put these as registers
@@ -203,11 +203,10 @@ void print_u8_hex(uint8_t num) {
   syscall_put_char(num % 10 + '0');
 }
 
-void load_sector(int16_t segment, int16_t offset, int8_t disc, int8_t sector) {
+uint8_t load_sector(int16_t segment, int16_t offset, int8_t disc,
+                    int8_t sector) {
   syscall_load_sector(segment, offset, disc, sector);
-  uint8_t err = syscall_status_last_op(disc);
-  if (err != 0x00)
-    print_u8_hex(err);
+  return syscall_status_last_op(disc);
 }
 
 void print_str(int8_t *str) {
@@ -235,4 +234,14 @@ void syscall_move_cursor(uint8_t row, uint8_t col) {
       : // no output
       : "g"(row), "g"(col)
       : "ah", "bh", "dx");
+}
+
+// not yet usable
+uint8_t strcmp(int8_t *left, int8_t *right) {
+  while (*left != '\0' || *right != '\0') {
+    if (*left != *right) {
+      return 1;
+    }
+  }
+  return 0;
 }

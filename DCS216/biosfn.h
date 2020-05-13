@@ -17,10 +17,12 @@ void syscall_far_jump_A00();
 int8_t syscall_status_last_op(int8_t disc);
 void syscall_put_char(int8_t ch);
 void print_u8_hex(uint8_t num);
-void load_sector(int16_t segment, int16_t offset, int8_t disc, int8_t sector);
+uint8_t load_sector(int16_t segment, int16_t offset, int8_t disc,
+                    int8_t sector);
 void print_str(int8_t *str);
 void syscall_set_cursor_type(uint8_t type, uint8_t mode);
 void syscall_move_cursor(uint8_t row, uint8_t col);
+uint8_t strcmp(int8_t *left, int8_t *right);
 
 #define VGA_Black 0x0
 #define VGA_Blue 0x1

@@ -51,6 +51,19 @@ kstart:
     mov es, ax
     lea si, [msg_exit]
     call print_str
+
+    mov dx, 0x4240
+    mov cx, 0x000F
+    mov ax, 0x8600
+    int 0x15
+
+    mov ax, 0x1000
+    mov ax, ss
+    mov sp, 0xf000
+    mov ax, 0x5307
+    mov bx, 0x0001
+    mov cx, 0x0003
+    int 0x15
     jmp $
 
 error:
@@ -70,8 +83,8 @@ print_str: ; IN si start address
         ret
 
 msg_err:  db "Error loading kernel", 0x0D, 0x0A, 0x00 
-msg_ok:   db "Kernel loaded......" , 0x0D, 0x0A, 0x00
-msg_exit: db "Kernel exited"       , 0x0D, 0x0A, 0x00
+msg_ok:   db "Kernel loaded......", 0x0D, 0x0A, 0x00
+msg_exit: db "Shutting down......", 0x0D, 0x0A, 0x00
 disk:     db 0x0
 
 times 510 - ($-$$) db 0

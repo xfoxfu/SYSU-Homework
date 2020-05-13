@@ -1,18 +1,29 @@
 #include "biosfn.h"
 #include <stdint.h>
 
+const char *prompt_command = "Command: ";
+const char *help = "Help:\n\r"
+                   "Number sequence - run commands\n\r"
+                   "h - help\n\r"
+                   "x - exit\n\r"
+                   "l - list commands\n\r";
+const char *error_occurred = "Error occurred when loading binary: ";
+
 void run(uint8_t id) {
   int8_t disc = syscall_get_default_drive();
-  load_sector(0x0A00, 0x0100, 0x00, id * 3 + 8);
-  load_sector(0x0A00, 0x0300, 0x00, id * 3 + 9);
-  load_sector(0x0A00, 0x0500, 0x00, id * 3 + 10);
+  int8_t err = load_sector(0x0A00, 0x0100, 0x00, id * 3 + 8);
+  if (err) {
+    print_str(error_occurred);
+    syscall_put_char('A');
+    print_u8_hex(err);
+    print_str("\n\r");
+    return;
+  }
   syscall_far_jump_A00();
 }
 void kmain(void) {
-  char prompt_command[] = "Command: ";
-  print_str(prompt_command);
-
   for (;;) {
+    print_str(prompt_command);
     // read command
     int8_t command[80];
     uint8_t count = 0;
@@ -29,10 +40,16 @@ void kmain(void) {
         break;
       }
     }
+    command[count] = '\0';
 
-    // execute command
     for (int i = 0; i < count; i++) {
-      run(command[i] - '0');
+      if (command[i] == 'h') {
+        print_str(help);
+      } else if (command[i] == 'x') {
+        return;
+      } else {
+        run(command[i] - '0');
+      }
     }
   }
 }
