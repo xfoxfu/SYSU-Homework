@@ -2,12 +2,13 @@
 
 #define VGA_BUFFER ((char *)0xB8000)
 
-void syscall_display_set_char(int row, int col, char chr, unsigned char color) {
+void syscall_display_set_char(int16_t row, int16_t col, int8_t chr,
+                              uint8_t color) {
   VGA_BUFFER[(row * 80 + col) * 2] = chr;
   VGA_BUFFER[(row * 80 + col) * 2 + 1] = color;
 }
 
-void syscall_sleep(int time_ms) {
+void syscall_sleep(int16_t time_ms) {
   asm volatile("mov cx, 0x0000 \n"
                "mov ah, 0x86   \n"
                "mov al, 0x00   \n"
@@ -17,12 +18,13 @@ void syscall_sleep(int time_ms) {
                : "ah");
 }
 
-void syscall_display_get_char(int row, int col, char *chr, char *color) {
+void syscall_display_get_char(int16_t row, int16_t col, int8_t *chr,
+                              int8_t *color) {
   *chr = VGA_BUFFER[(row * 80 + col) * 2];
   *color = VGA_BUFFER[(row * 80 + col) * 2 + 1];
 }
 
-void display(short x, short y, short xm, short ym) {
+void display(int8_t x, int8_t y, int8_t xm, int8_t ym) {
   char NAME[] = {'1', '7', '3', '4', '1', '0', '3', '9'};
   int col = x;
   int row = y;

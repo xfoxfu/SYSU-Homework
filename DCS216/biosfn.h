@@ -1,7 +1,12 @@
-void syscall_display_set_char(int row, int col, char chr, unsigned char color);
-void syscall_sleep(int time_ms);
-void syscall_display_get_char(int row, int col, char *chr, char *color);
-void display(short x, short y, short xm, short ym);
+#include <stdint.h>
+
+void syscall_display_set_char(int16_t row, int16_t col, int8_t chr,
+                              uint8_t color);
+void syscall_sleep(int16_t time_ms);
+void syscall_display_get_char(int16_t row, int16_t col, int8_t *chr,
+                              int8_t *color);
+void display(int8_t x, int8_t y, int8_t xm, int8_t ym);
+int8_t syscall_get_key_noblock(void);
 
 #define VGA_Black 0x0
 #define VGA_Blue 0x1
