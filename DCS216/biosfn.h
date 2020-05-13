@@ -1,5 +1,7 @@
 #include <stdint.h>
 
+void raw_far_pointer_write(uint16_t segment, uint16_t offset, int8_t value);
+int8_t raw_far_pointer_read(uint16_t segment, uint16_t offset);
 void syscall_display_set_char(int16_t row, int16_t col, int8_t chr,
                               uint8_t color);
 void syscall_sleep(int16_t time_ms);

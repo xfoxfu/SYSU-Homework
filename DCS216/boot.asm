@@ -35,15 +35,10 @@ boot:
     mov dx, 0000h
     mov dl, byte [disk]
     mov cx, 0002h
-load:
-    mov ax, 0201h
+; load:
+    mov ax, 0206h
     int 13h ; OUT CF AH AL
     jc error ; error handling
-    cmp bx, KERNEL_SECEND
-    jge kstart
-    add bx, KERNEL_SECLEN
-    inc cl
-    jmp load
 
 kstart:
     lea si, [msg_ok]

@@ -1,11 +1,33 @@
 #include "biosfn.h"
 
-#define VGA_BUFFER ((char *)0xB8000)
+void raw_far_pointer_write(uint16_t segment, uint16_t offset, int8_t value) {
+  asm("pushw es        \n"
+      "mov es, %1      \n"
+      "mov bx, %2      \n"
+      "mov byte ptr es:[bx], %0 \n"
+      "popw es         \n"
+      : // no output
+      : "r"(value), "g"(segment), "g"(offset)
+      : "bx");
+}
+
+int8_t raw_far_pointer_read(uint16_t segment, uint16_t offset) {
+  int8_t ret;
+  asm("pushw es        \n"
+      "mov es, %1      \n"
+      "mov bx, %2      \n"
+      "mov %0, byte ptr es:[bx] \n"
+      "popw es         \n"
+      : "=r"(ret)
+      : "g"(segment), "g"(offset)
+      : "bx");
+  return ret;
+}
 
 void syscall_display_set_char(int16_t row, int16_t col, int8_t chr,
                               uint8_t color) {
-  VGA_BUFFER[(row * 80 + col) * 2] = chr;
-  VGA_BUFFER[(row * 80 + col) * 2 + 1] = color;
+  raw_far_pointer_write(0xB800, (row * 80 + col) * 2, chr);
+  raw_far_pointer_write(0xB800, (row * 80 + col) * 2 + 1, color);
 }
 
 void syscall_sleep(int16_t time_ms) {
@@ -15,23 +37,24 @@ void syscall_sleep(int16_t time_ms) {
                "int 0x15       \n"
                : /* no output */
                : "d"(time_ms)
-               : "ah");
+               : "cx", "ax");
 }
 
 void syscall_display_get_char(int16_t row, int16_t col, int8_t *chr,
                               int8_t *color) {
-  *chr = VGA_BUFFER[(row * 80 + col) * 2];
-  *color = VGA_BUFFER[(row * 80 + col) * 2 + 1];
+  *chr = raw_far_pointer_read(0xB800, 2 * (row * 80 + col));
+  *color = raw_far_pointer_read(0xB800, 2 * (row * 80 + col) + 1);
 }
 
 void display(const int8_t x, const int8_t y, const int8_t xm, const int8_t ym) {
+  syscall_set_cursor_type(0b00000000, 0b00100000);
   char NAME[] = {'1', '7', '3', '4', '1', '0', '3', '9'};
   int col = x;
   int row = y;
   int col_incr = 1;
   int row_incr = 1;
   int color = VGA_White;
-  char protect[8 * 2] = {};
+  char protect[8 * 2] = {0};
 
   for (;;) {
     syscall_display_set_char(row, col, '*', color);
@@ -93,7 +116,7 @@ int8_t syscall_get_key_noblock(void) {
       "2:               \n"
       : "=r"(key)
       : /* no input */
-      : "ax");
+      : "ah", "al");
   return key;
 }
 
@@ -104,7 +127,7 @@ int8_t syscall_get_key_block(void) {
       "mov %0, al   \n"
       : "=r"(key)
       : /* no input */
-      : "ax");
+      : "ah", "al");
   return key;
 }
 
@@ -115,7 +138,7 @@ int8_t syscall_get_default_drive(void) {
       "mov %0, dl   \n"
       : "=r"(drive)
       : /* no input */
-      : "al");
+      : "ah", "dl");
   return drive;
 }
 
@@ -138,7 +161,7 @@ void syscall_put_char(int8_t ch) {
       "int 0x10       \n"
       : /* no output */
       : "g"(ch)
-      : "ah", "bx");
+      : "ax", "bx");
 }
 
 void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
@@ -175,8 +198,9 @@ void syscall_far_jump_A00() {
 }
 
 void print_u8_hex(uint8_t num) {
-  syscall_put_char(num / 16 % 16 + '0');
-  syscall_put_char(num % 16 + '0');
+  syscall_put_char(num / 100 % 10 + '0');
+  syscall_put_char(num / 10 % 10 + '0');
+  syscall_put_char(num % 10 + '0');
 }
 
 void load_sector(int16_t segment, int16_t offset, int8_t disc, int8_t sector) {
@@ -210,5 +234,5 @@ void syscall_move_cursor(uint8_t row, uint8_t col) {
       "int 0x10     \n"
       : // no output
       : "g"(row), "g"(col)
-      : "ah", "bh");
+      : "ah", "bh", "dx");
 }
