@@ -186,9 +186,9 @@ void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                : "ax", "bx", "cx", "dx", "memory");
 }
 
-void syscall_far_jump_A00() {
+void syscall_far_jump_900() {
   asm volatile("pusha              \n"
-               "callw 0x0A00:0x0100\n"
+               "callw 0x0900:0x0100\n"
                "popa               \n"
                "mov   ax, cs       \n"
                "mov   ds, ax       \n"
@@ -249,11 +249,11 @@ uint8_t strcmp(int8_t *left, int8_t *right) {
   return 0;
 }
 
-void syscall_clear_screen() {
+void syscall_display_mode(uint8_t mode) {
   asm("mov ah, 0x00\n"
-      "mov al, 0x03\n"
+      "mov al, %0\n"
       "int 0x10\n"
       : // no output
-      : // no input
-      : "ax");
+      : "g"(mode)
+      : "ah", "al");
 }

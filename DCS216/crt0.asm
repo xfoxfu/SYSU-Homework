@@ -8,6 +8,7 @@ _start:
 	mov  ds,  ax
 	mov  es,  ax
     mov  fs,  ax
+    ; mov  gs,  ax
 
     mov word [p_ss], ss ; move stack to a local area will effectively fix some bug
     mov word [p_sp], sp

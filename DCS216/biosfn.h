@@ -13,7 +13,7 @@ int8_t syscall_get_key_block(void);
 int8_t syscall_get_default_drive(void);
 void syscall_load_sector(int16_t segment, int16_t offset, int8_t disc,
                          int8_t sector, uint8_t length);
-void syscall_far_jump_A00();
+void syscall_far_jump_900();
 int8_t syscall_status_last_op(int8_t disc);
 void syscall_put_char(int8_t ch);
 void print_u8_hex(uint8_t num);
@@ -23,7 +23,7 @@ void print_str(const int8_t *str);
 void syscall_set_cursor_type(uint8_t type, uint8_t mode);
 void syscall_move_cursor(uint8_t row, uint8_t col);
 uint8_t strcmp(int8_t *left, int8_t *right);
-void syscall_clear_screen();
+void syscall_display_mode(uint8_t mode);
 
 #define VGA_Black 0x0
 #define VGA_Blue 0x1

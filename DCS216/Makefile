@@ -9,7 +9,7 @@ BIN=$(ODIR)/os.img
 _OBJ = bootloader kernel.com crt0.o \
 	display_bottom_left.com display_bottom_right.com \
 	display_top_left.com display_top_right.com \
-	executables.txt
+	executables.txt vga.com
 OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
 
 _COMMONC = biosfn.c
@@ -33,10 +33,11 @@ $(BIN): $(OBJ)
 	dd if=$(ODIR)/bootloader               of=$@ bs=512 count=1 seek=0  conv=notrunc
 	dd if=$(ODIR)/kernel.com               of=$@ bs=512 count=8 seek=1  conv=notrunc
 	dd if=$(ODIR)/executables.txt          of=$@ bs=512 count=1 seek=9  conv=notrunc
-	dd if=$(ODIR)/display_top_left.com     of=$@ bs=512 count=3 seek=10  conv=notrunc
-	dd if=$(ODIR)/display_top_right.com    of=$@ bs=512 count=3 seek=13 conv=notrunc
-	dd if=$(ODIR)/display_bottom_left.com  of=$@ bs=512 count=3 seek=16 conv=notrunc
-	dd if=$(ODIR)/display_bottom_right.com of=$@ bs=512 count=3 seek=19 conv=notrunc
+	dd if=$(ODIR)/display_top_left.com     of=$@ bs=512 count=4 seek=12  conv=notrunc
+	dd if=$(ODIR)/display_top_right.com    of=$@ bs=512 count=4 seek=16 conv=notrunc
+	dd if=$(ODIR)/display_bottom_left.com  of=$@ bs=512 count=4 seek=20 conv=notrunc
+	dd if=$(ODIR)/display_bottom_right.com of=$@ bs=512 count=4 seek=24 conv=notrunc
+	dd if=$(ODIR)/vga.com                  of=$@ bs=512 count=4 seek=28 conv=notrunc
 
 .PHONY: clean run
 
