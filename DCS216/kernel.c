@@ -7,6 +7,7 @@ const char *help = "==================\n\r"
                    "h - help\n\r"
                    "x - exit\n\r"
                    "l - list commands\n\r"
+                   "c - clear screen\n\r"
                    "run commands:\n\r";
 const char *error_occurred = "Error occurred when loading binary: ";
 const char *msg_is = " => ";
@@ -90,6 +91,8 @@ void kmain(void) {
         count_executables();
       } else if (command[i] == 'x') {
         return;
+      } else if (command[i] == 'c') {
+        syscall_clear_screen();
       } else {
         if (command[i] >= execs + '0') {
           print_str(invalid_exec);

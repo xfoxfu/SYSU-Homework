@@ -23,6 +23,7 @@ void print_str(const int8_t *str);
 void syscall_set_cursor_type(uint8_t type, uint8_t mode);
 void syscall_move_cursor(uint8_t row, uint8_t col);
 uint8_t strcmp(int8_t *left, int8_t *right);
+void syscall_clear_screen();
 
 #define VGA_Black 0x0
 #define VGA_Blue 0x1

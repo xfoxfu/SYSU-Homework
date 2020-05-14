@@ -248,3 +248,12 @@ uint8_t strcmp(int8_t *left, int8_t *right) {
   }
   return 0;
 }
+
+void syscall_clear_screen() {
+  asm("mov ah, 0x00\n"
+      "mov al, 0x03\n"
+      "int 0x10\n"
+      : // no output
+      : // no input
+      : "ax");
+}
