@@ -1,54 +1,54 @@
-CC=x86_64-elf-gcc
-CPP=x86_64-elf-g++
-AS=nasm
-CFLAGS=-std=gnu17 -Os -nostdlib -m16 -masm=intel -ffreestanding  -Wall -Wextra -Wl,--nmagic,--script=linker.ld,-melf_i386
-SDIR=src
-ODIR=sysroot
-BIN=$(ODIR)/os.img
+MODE ?= release
+OVMF := OVMF.fd
+ESP := esp
+BUILD_ARGS := -Z build-std=core,alloc
+QEMU_ARGS := -net none
 
-_OBJ = bootloader kernel.com crt0.o \
-	display_bottom_left.com display_bottom_right.com \
-	display_top_left.com display_top_right.com \
-	executables.txt vga.com
-OBJ = $(patsubst %,$(ODIR)/%,$(_OBJ))
+ifeq (${MODE}, release)
+	BUILD_ARGS += --release
+endif
 
-_COMMONC = biosfn.c
+.PHONY: build run header asm doc .FORCE \
+	target/x86_64-unknown-uefi/$(MODE)/boot.efi   \
+	target/x86_64-unknown-none/$(MODE)/kernel     \
+	target/x86_64-unknown-xos/$(MODE)/draw-plot \
+	target/x86_64-unknown-xos/$(MODE)/sampleio \
 
-.DEFAULT_GOAL := $(BIN)
+build: $(ESP)
 
-$(ODIR)/bootloader: boot.asm | $(ODIR)/
-	$(AS) -f bin -o $@ $<
 
-$(ODIR)/crt0.o: crt0.asm linker.ld | $(ODIR)/
-	$(AS) -f elf32 -o $@ $<
+$(ESP): $(ESP)/EFI/BOOT/BOOTX64.EFI $(ESP)/KERNEL.ELF $(ESP)/EFI/BOOT/rboot.conf \
+	$(ESP)/draw-plot $(ESP)/sampleio \
 
-$(ODIR)/%.com: %.c $(ODIR)/crt0.o $(_COMMONC) | $(ODIR)/
-	$(CC) $(CFLAGS) -o $@ $^
-
-$(ODIR)/%.txt: %.txt | $(ODIR)/
+$(ESP)/EFI/BOOT/BOOTX64.EFI: target/x86_64-unknown-uefi/$(MODE)/boot.efi
+	@mkdir -p $(@D)
+	cp $< $@
+$(ESP)/EFI/BOOT/rboot.conf: rboot.conf
+	@mkdir -p $(@D)
+	cp $< $@
+$(ESP)/KERNEL.ELF: target/x86_64-unknown-none/$(MODE)/kernel
+	@mkdir -p $(@D)
+	cp $< $@
+$(ESP)/draw-plot: target/x86_64-unknown-xos/$(MODE)/draw-plot
+	@mkdir -p $(@D)
+	cp $< $@
+$(ESP)/sampleio: target/x86_64-unknown-xos/$(MODE)/sampleio
+	@mkdir -p $(@D)
 	cp $< $@
 
-$(BIN): $(OBJ)
-	dd if=/dev/zero                        of=$@ bs=512 count=30
-	dd if=$(ODIR)/bootloader               of=$@ bs=512 count=1 seek=0  conv=notrunc
-	dd if=$(ODIR)/kernel.com               of=$@ bs=512 count=8 seek=1  conv=notrunc
-	dd if=$(ODIR)/executables.txt          of=$@ bs=512 count=1 seek=9  conv=notrunc
-	dd if=$(ODIR)/display_top_left.com     of=$@ bs=512 count=4 seek=12  conv=notrunc
-	dd if=$(ODIR)/display_top_right.com    of=$@ bs=512 count=4 seek=16 conv=notrunc
-	dd if=$(ODIR)/display_bottom_left.com  of=$@ bs=512 count=4 seek=20 conv=notrunc
-	dd if=$(ODIR)/display_bottom_right.com of=$@ bs=512 count=4 seek=24 conv=notrunc
-	dd if=$(ODIR)/vga.com                  of=$@ bs=512 count=4 seek=28 conv=notrunc
+target/x86_64-unknown-uefi/$(MODE)/boot.efi: boot
+	cargo build -p $< --target x86_64-unknown-uefi $(BUILD_ARGS)
+target/x86_64-unknown-none/$(MODE)/kernel: kernel
+	cargo build -p $< --target x86_64-unknown-none.json $(BUILD_ARGS)
+target/x86_64-unknown-xos/$(MODE)/draw-plot: draw-plot
+	cargo build -p $< --target x86_64-unknown-xos.json $(BUILD_ARGS)
+target/x86_64-unknown-xos/$(MODE)/sampleio: sampleio
+	cargo build -p $< --target x86_64-unknown-xos.json $(BUILD_ARGS)
 
-.PHONY: clean run
+qemu: build
+	qemu-system-x86_64 -bios ${OVMF} \
+	-drive format=raw,file=fat:rw:$(ESP) \
+	$(QEMU_ARGS)
 
-$(ODIR)/:
-	mkdir -p $(ODIR)
-
-clean:
-	rm -f $(OBJ) $(BIN)
-
-run: $(BIN)
-	qemu-system-x86_64 -fda $(BIN)
-
-debug: $(BIN)
-	qemu-system-x86_64 -fda $(BIN) -s -S
+test:
+	cargo test -p fatpart
