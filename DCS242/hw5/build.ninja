@@ -1,0 +1,30 @@
+omp         = /usr/local/opt/llvm/bin/clang++
+ompflags    = -Wall -Wextra -std=c++17 -fopenmp -I/usr/local/opt/llvm/include -Ivendor
+ompldflags  = -L/usr/local/opt/llvm/lib -lomp
+cxx         = mpic++
+cxxflags    = -Wall -Wextra -std=c++17 -Ivendor
+ldflags     = 
+
+rule compileomp
+  command = $omp $ompflags -c $in -o $out
+rule linkomp
+  command = $omp $ompldflags $in -o $out
+
+rule compile
+  command = $cxx $cxxflags -c $in -o $out
+rule link
+  command = $cxx $ldflags $in -o $out
+
+build prod.o: compileomp prod.cpp
+build prod: linkomp prod.o
+
+build convert.o: compileomp convert.cpp
+build convert: linkomp convert.o
+
+build pubsub.o: compileomp pubsub.cpp
+build pubsub: linkomp pubsub.o
+
+build mpi.o: compile mpi.cpp
+build mpi: link mpi.o
+
+default prod convert pubsub mpi
