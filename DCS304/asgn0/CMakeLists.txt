@@ -27,11 +27,14 @@ set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
 include(CPack)
 
-add_custom_command(
-    OUTPUT  ${CMAKE_CURRENT_BINARY_DIR}/assets
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/assets
-    COMMAND cp -r ${CMAKE_CURRENT_SOURCE_DIR}/assets ${CMAKE_CURRENT_BINARY_DIR}
-    COMMENT copying assets)
-add_custom_target(asset_files ALL DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/assets)
 
-add_dependencies(main asset_files)
+function(add_assets)
+    foreach(src ${ARGN})
+        configure_file(assets/${src} assets/${src})
+    endforeach(src)
+endfunction(add_assets)
+
+add_assets(
+    fragment.frag 
+    vertex.vert
+)

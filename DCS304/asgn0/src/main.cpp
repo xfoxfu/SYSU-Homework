@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <utility>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
 void processInput(GLFWwindow *window);
@@ -50,10 +51,13 @@ int main() {
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
-  glm::vec3 vertices[] = {
-      glm::vec3(-0.5f, -0.5f, 0.0f), // left
-      glm::vec3(0.5f, -0.5f, 0.0f),  // right
-      glm::vec3(0.0f, 0.5f, 0.0f)    // top
+  std::pair<glm::vec3, glm::vec3> vertices[] = {
+      std::make_pair(glm::vec3(-0.5f, -0.5f, 0.0f),
+                     glm::vec3(1.0f, 0.0f, 0.0f)), // left
+      std::make_pair(glm::vec3(0.5f, -0.5f, 0.0f),
+                     glm::vec3(0.0f, 1.0f, 0.0f)), // right
+      std::make_pair(glm::vec3(0.0f, 0.5f, 0.0f),
+                     glm::vec3(0.0f, 0.0f, 1.0f)), // top
   };
 
   auto vao = VAO();
@@ -64,7 +68,16 @@ int main() {
 
   vbo.buffer_data(vertices, sizeof(vertices));
 
-  vbo.set_pointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void *)0);
+  // 位置属性
+  // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+  // (void*)0);
+  // // 颜色属性
+  // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
+  // (void*)(3* sizeof(float)));
+  vbo.set_attrib(0, 3, GL_FLOAT, GL_FALSE,
+                 sizeof(std::pair<glm::vec3, glm::vec3>), 0);
+  vbo.set_attrib(1, 3, GL_FLOAT, GL_FALSE,
+                 sizeof(std::pair<glm::vec3, glm::vec3>), sizeof(glm::vec3));
 
   // note that this is allowed, the call to glVertexAttribPointer registered VBO
   // as the vertex attribute's bound vertex buffer object so afterwards we can
