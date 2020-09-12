@@ -17,6 +17,7 @@ Texture::Texture(const char *filename) {
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
   glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
   // load image, create texture and generate mipmaps
+  stbi_set_flip_vertically_on_load(true);
   unsigned char *data =
       stbi_load(_filename, &_width, &_height, &_nr_channels, 0);
   if (data == nullptr) {

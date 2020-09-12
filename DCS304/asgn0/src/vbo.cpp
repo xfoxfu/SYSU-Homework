@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 
 #include "vbo.hpp"
+#include "vertex.hpp"
 
 VBO::VBO() { glGenBuffers(1, &ID); }
 
@@ -27,4 +28,12 @@ void VBO::set_attrib(size_t index, size_t size, GLenum type, bool normalized,
   glVertexAttribPointer(index, size, type, normalized, stride,
                         (const void *)pointer);
   glEnableVertexAttribArray(index);
+}
+
+void VBO::set_attrib_vertex() {
+  set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+             offsetof(Vertex, position));
+  set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, color));
+  set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(Vertex),
+             offsetof(Vertex, texture_position));
 }

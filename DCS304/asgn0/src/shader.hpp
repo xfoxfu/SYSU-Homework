@@ -15,6 +15,7 @@ public:
   void setFloat(const std::string &name, float value) const;
   void set(const char *name, glm::vec3 value) const;
   void set(const char *name, glm::vec4 value) const;
+  void bind_current_texture_to(const char *name) const;
 
 private:
   void checkCompileErrors(unsigned int shader, std::string type);

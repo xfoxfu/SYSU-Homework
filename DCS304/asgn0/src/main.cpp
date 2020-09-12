@@ -4,7 +4,9 @@
 #include "texture.hpp"
 #include "vao.hpp"
 #include "vbo.hpp"
+#include "vertex.hpp"
 #include <GLFW/glfw3.h>
+#include <cstddef>
 #include <glm/glm.hpp>
 #include <iostream>
 #include <stb_image.h>
@@ -53,14 +55,10 @@ int main() {
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
-  std::tuple<glm::vec3, glm::vec3, glm::vec2> vertices[] = {
-      std::make_tuple(glm::vec3(-0.5f, -0.5f, 0.0f),
-                      glm::vec3(1.0f, 0.0f, 0.0f),
-                      glm::vec2(0.0f, 0.0f)), // left
-      std::make_tuple(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f),
-                      glm::vec2(1.0f, 0.0f)), // right
-      std::make_tuple(glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
-                      glm::vec2(0.5f, 1.0f)), // top
+  Vertex vertices[] = {
+      Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec2(0.0f, 0.0f)), // left
+      Vertex(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec2(2.0f, 0.0f)),  // right
+      Vertex(glm::vec3(0.0f, 0.5f, 0.0f), glm::vec2(1.0f, 2.0f)),   // top
   };
 
   auto vao = VAO();
@@ -70,26 +68,15 @@ int main() {
   vao.bind();
 
   vbo.buffer_data(vertices, sizeof(vertices));
-
-  // 位置属性
-  // glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
-  // (void*)0);
-  // // 颜色属性
-  // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
-  // (void*)(3* sizeof(float)));
-  vbo.set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]), 0);
-  vbo.set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]),
-                 sizeof(glm::vec3));
-  vbo.set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]),
-                 sizeof(glm::vec3) * 2);
+  vbo.set_attrib_vertex();
 
   shaderProgram.use();
   auto texture1 = Texture("assets/container.jpg");
   texture1.bind(GL_TEXTURE0);
+  shaderProgram.bind_current_texture_to("texture1");
   auto texture2 = Texture("assets/awesomeface.png");
   texture2.bind(GL_TEXTURE1);
-  shaderProgram.setInt("texture1", 0);
-  shaderProgram.setInt("texture2", 1);
+  shaderProgram.bind_current_texture_to("texture2");
 
   // note that this is allowed, the call to glVertexAttribPointer registered VBO
   // as the vertex attribute's bound vertex buffer object so afterwards we can

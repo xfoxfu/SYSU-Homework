@@ -84,6 +84,13 @@ void Shader::set(const char *name, glm::vec4 value) const {
               value.w);
 }
 
+void Shader::bind_current_texture_to(const char *name) const {
+  int32_t id;
+  glGetIntegerv(GL_ACTIVE_TEXTURE, &id);
+  id -= GL_TEXTURE0;
+  setInt(name, id);
+}
+
 void Shader::checkCompileErrors(unsigned int shader, std::string type) {
   int success;
   char infoLog[1024];

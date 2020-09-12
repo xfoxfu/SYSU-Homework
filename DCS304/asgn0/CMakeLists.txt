@@ -14,6 +14,7 @@ add_executable(main
     src/texture.cpp
     src/vao.cpp
     src/vbo.cpp
+    src/vertex.cpp
 )
 include_directories(include)
 
