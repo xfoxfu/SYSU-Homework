@@ -11,6 +11,7 @@ add_library(GLAD "vendor/glad/glad.c")
 add_executable(main
     src/main.cpp
     src/shader.cpp
+    src/texture.cpp
     src/vao.cpp
     src/vbo.cpp
 )
@@ -44,4 +45,5 @@ add_assets(
     fragment.frag 
     vertex.vert
     container.jpg
+    awesomeface.png
 )

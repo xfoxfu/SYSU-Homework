@@ -1,6 +1,7 @@
 #include <glad/glad.h>
 
 #include "shader.hpp"
+#include "texture.hpp"
 #include "vao.hpp"
 #include "vbo.hpp"
 #include <GLFW/glfw3.h>
@@ -82,16 +83,13 @@ int main() {
   vbo.set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]),
                  sizeof(glm::vec3) * 2);
 
-  int width, height, nrChannels;
-  unsigned char *data =
-      stbi_load("assets/container.jpg", &width, &height, &nrChannels, 0);
-  unsigned int texture;
-  glGenTextures(1, &texture);
-  glBindTexture(GL_TEXTURE_2D, texture);
-  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
-               GL_UNSIGNED_BYTE, data);
-  glGenerateMipmap(GL_TEXTURE_2D);
-  stbi_image_free(data);
+  shaderProgram.use();
+  auto texture1 = Texture("assets/container.jpg");
+  texture1.bind(GL_TEXTURE0);
+  auto texture2 = Texture("assets/awesomeface.png");
+  texture2.bind(GL_TEXTURE1);
+  shaderProgram.setInt("texture1", 0);
+  shaderProgram.setInt("texture2", 1);
 
   // note that this is allowed, the call to glVertexAttribPointer registered VBO
   // as the vertex attribute's bound vertex buffer object so afterwards we can
@@ -122,6 +120,9 @@ int main() {
 
     float timeValue = glfwGetTime();
     float greenValue = sin(timeValue) / 2.0f + 0.5f;
+
+    texture1.bind(GL_TEXTURE0);
+    texture2.bind(GL_TEXTURE1);
 
     // draw our first triangle
     shaderProgram.use();
