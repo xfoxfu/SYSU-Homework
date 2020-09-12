@@ -6,6 +6,7 @@
 #include <GLFW/glfw3.h>
 #include <glm/glm.hpp>
 #include <iostream>
+#include <stb_image.h>
 #include <utility>
 
 void framebuffer_size_callback(GLFWwindow *window, int width, int height);
@@ -51,13 +52,14 @@ int main() {
 
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
-  std::pair<glm::vec3, glm::vec3> vertices[] = {
-      std::make_pair(glm::vec3(-0.5f, -0.5f, 0.0f),
-                     glm::vec3(1.0f, 0.0f, 0.0f)), // left
-      std::make_pair(glm::vec3(0.5f, -0.5f, 0.0f),
-                     glm::vec3(0.0f, 1.0f, 0.0f)), // right
-      std::make_pair(glm::vec3(0.0f, 0.5f, 0.0f),
-                     glm::vec3(0.0f, 0.0f, 1.0f)), // top
+  std::tuple<glm::vec3, glm::vec3, glm::vec2> vertices[] = {
+      std::make_tuple(glm::vec3(-0.5f, -0.5f, 0.0f),
+                      glm::vec3(1.0f, 0.0f, 0.0f),
+                      glm::vec2(0.0f, 0.0f)), // left
+      std::make_tuple(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec3(0.0f, 1.0f, 0.0f),
+                      glm::vec2(1.0f, 0.0f)), // right
+      std::make_tuple(glm::vec3(0.0f, 0.5f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f),
+                      glm::vec2(0.5f, 1.0f)), // top
   };
 
   auto vao = VAO();
@@ -74,10 +76,22 @@ int main() {
   // // 颜色属性
   // glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float),
   // (void*)(3* sizeof(float)));
-  vbo.set_attrib(0, 3, GL_FLOAT, GL_FALSE,
-                 sizeof(std::pair<glm::vec3, glm::vec3>), 0);
-  vbo.set_attrib(1, 3, GL_FLOAT, GL_FALSE,
-                 sizeof(std::pair<glm::vec3, glm::vec3>), sizeof(glm::vec3));
+  vbo.set_attrib(0, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]), 0);
+  vbo.set_attrib(1, 3, GL_FLOAT, GL_FALSE, sizeof(vertices[0]),
+                 sizeof(glm::vec3));
+  vbo.set_attrib(2, 2, GL_FLOAT, GL_FALSE, sizeof(vertices[0]),
+                 sizeof(glm::vec3) * 2);
+
+  int width, height, nrChannels;
+  unsigned char *data =
+      stbi_load("assets/container.jpg", &width, &height, &nrChannels, 0);
+  unsigned int texture;
+  glGenTextures(1, &texture);
+  glBindTexture(GL_TEXTURE_2D, texture);
+  glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB,
+               GL_UNSIGNED_BYTE, data);
+  glGenerateMipmap(GL_TEXTURE_2D);
+  stbi_image_free(data);
 
   // note that this is allowed, the call to glVertexAttribPointer registered VBO
   // as the vertex attribute's bound vertex buffer object so afterwards we can
@@ -106,11 +120,15 @@ int main() {
     glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
+    float timeValue = glfwGetTime();
+    float greenValue = sin(timeValue) / 2.0f + 0.5f;
+
     // draw our first triangle
     shaderProgram.use();
-    vao.bind(); // seeing as we only have a single VAO there's no need to bind
-                // it every time, but we'll do so to keep things a bit more
-                // organized
+    shaderProgram.set("ourColor", glm::vec3(0.0f, greenValue, 0.0f));
+    vao.bind(); // seeing as we only have a single VAO there's no need to
+                // bind it every time, but we'll do so to keep things a
+                // bit more organized
     glDrawArrays(GL_TRIANGLES, 0, 3);
     // glBindVertexArray(0); // no need to unbind it every time
 

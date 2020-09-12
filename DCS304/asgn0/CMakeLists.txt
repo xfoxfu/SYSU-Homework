@@ -1,11 +1,15 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(main VERSION 0.1.0)
 
-file(GLOB "src/*.cpp")
+# STB_IMAGE
+add_library(STB_IMAGE "vendor/stb_image/stb_image.cpp")
 
+# GLAD
+add_library(GLAD "vendor/glad/glad.c")
+
+# main
 add_executable(main
     src/main.cpp
-    src/glad.c
     src/shader.cpp
     src/vao.cpp
     src/vbo.cpp
@@ -22,6 +26,8 @@ find_package(OpenGL REQUIRED)
 target_link_libraries(main OpenGL::GL)
 find_package(glm REQUIRED)
 target_link_libraries(main glm::glm)
+target_link_libraries(main GLAD)
+target_link_libraries(main STB_IMAGE)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})
@@ -30,11 +36,12 @@ include(CPack)
 
 function(add_assets)
     foreach(src ${ARGN})
-        configure_file(assets/${src} assets/${src})
+        configure_file(assets/${src} assets/${src} COPYONLY)
     endforeach(src)
 endfunction(add_assets)
 
 add_assets(
     fragment.frag 
     vertex.vert
+    container.jpg
 )

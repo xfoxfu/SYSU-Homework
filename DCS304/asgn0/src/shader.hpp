@@ -1,5 +1,7 @@
 #pragma once
 
+#include <glm/vec3.hpp>
+#include <glm/vec4.hpp>
 #include <string>
 
 class Shader {
@@ -11,6 +13,8 @@ public:
   void setBool(const std::string &name, bool value) const;
   void setInt(const std::string &name, int value) const;
   void setFloat(const std::string &name, float value) const;
+  void set(const char *name, glm::vec3 value) const;
+  void set(const char *name, glm::vec4 value) const;
 
 private:
   void checkCompileErrors(unsigned int shader, std::string type);
