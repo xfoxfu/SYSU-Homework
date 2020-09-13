@@ -1,5 +1,6 @@
 #include <glad/glad.h>
 
+#include "ebo.hpp"
 #include "shader.hpp"
 #include "texture.hpp"
 #include "vao.hpp"
@@ -56,32 +57,46 @@ int main() {
   // set up vertex data (and buffer(s)) and configure vertex attributes
   // ------------------------------------------------------------------
   Vertex vertices[] = {
-      Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec2(0.0f, 0.0f)), // left
-      Vertex(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec2(2.0f, 0.0f)),  // right
-      Vertex(glm::vec3(0.0f, 0.5f, 0.0f), glm::vec2(1.0f, 2.0f)),   // top
+      Vertex(glm::vec3(0.5f, 0.5f, 0.0f), glm::vec2(2.0f, 2.0f)),   // 右上角
+      Vertex(glm::vec3(0.5f, -0.5f, 0.0f), glm::vec2(2.0f, 0.0f)),  // 右下角
+      Vertex(glm::vec3(-0.5f, -0.5f, 0.0f), glm::vec2(0.0f, 0.0f)), // 左下角
+      Vertex(glm::vec3(-0.5f, 0.5f, 0.0f), glm::vec2(0.0f, 2.0f)),  // 左上角
+  };
+  uint32_t indices[] = {
+      0, 1, 3, // 第一个三角形
+      1, 2, 3, // 第二个三角形
   };
 
   auto vao = VAO();
   auto vbo = VBO();
+  auto ebo = EBO();
   // bind the Vertex Array Object first, then bind and set vertex buffer(s), and
   // then configure vertex attributes(s).
   vao.bind();
 
   vbo.buffer_data(vertices, sizeof(vertices));
+
+  ebo.bind();
+  ebo.buffer_data(indices, sizeof(indices));
+
   vbo.set_attrib_vertex();
 
   shaderProgram.use();
   auto texture1 = Texture("assets/container.jpg");
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
   texture1.bind(GL_TEXTURE0);
   shaderProgram.bind_current_texture_to("texture1");
   auto texture2 = Texture("assets/awesomeface.png");
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_BORDER);
+  glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_BORDER);
   texture2.bind(GL_TEXTURE1);
   shaderProgram.bind_current_texture_to("texture2");
 
   // note that this is allowed, the call to glVertexAttribPointer registered VBO
   // as the vertex attribute's bound vertex buffer object so afterwards we can
   // safely unbind
-  // glBindBuffer(GL_ARRAY_BUFFER, 0);
+  glBindBuffer(GL_ARRAY_BUFFER, 0);
 
   // You can unbind the VAO afterwards so other VAO calls won't accidentally
   // modify this VAO, but this rarely happens. Modifying other VAOs requires a
@@ -117,7 +132,8 @@ int main() {
     vao.bind(); // seeing as we only have a single VAO there's no need to
                 // bind it every time, but we'll do so to keep things a
                 // bit more organized
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+    assert(glGetError() == GL_NO_ERROR);
     // glBindVertexArray(0); // no need to unbind it every time
 
     // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved

@@ -9,6 +9,7 @@ add_library(GLAD "vendor/glad/glad.c")
 
 # main
 add_executable(main
+    src/ebo.cpp
     src/main.cpp
     src/shader.cpp
     src/texture.cpp
