@@ -14,26 +14,46 @@ fn passage_vector<'a>(passage: &[&'a str]) -> BTreeMap<&'a str, usize> {
     word_count
 }
 
+fn safe_sub_abs(lhs: usize, rhs: usize) -> usize {
+    if lhs > rhs {
+        lhs - rhs
+    } else {
+        rhs - lhs
+    }
+}
+
 fn passage_distance(distance_p: u32, lhs: &[&str], rhs: &[&str]) -> usize {
     let lvec = passage_vector(lhs);
     let rvec = passage_vector(rhs);
 
-    let mut diff = 0usize;
+    if distance_p > 0 {
+        let mut diff = 0usize;
 
-    for (lw, lc) in lvec.iter() {
-        if rvec.contains_key(lw) {
-            diff += (lc + rvec[lw]).pow(distance_p);
-        } else {
-            diff += lc.pow(distance_p);
+        for (lw, lc) in lvec.iter() {
+            if rvec.contains_key(lw) {
+                diff += safe_sub_abs(*lc, rvec[lw]).pow(distance_p);
+            } else {
+                diff += lc.pow(distance_p);
+            }
         }
-    }
-    for (rw, rc) in rvec.iter() {
-        if !lvec.contains_key(rw) {
-            diff += rc.pow(distance_p);
+        for (rw, rc) in rvec.iter() {
+            if !lvec.contains_key(rw) {
+                diff += rc.pow(distance_p);
+            }
         }
-    }
 
-    diff
+        diff
+    } else {
+        let mut p = 0;
+        for w in lvec.keys() {
+            if rvec.contains_key(w) {
+                p += lvec[w] * rvec[w];
+            }
+        }
+        let q: usize = lvec.values().map(|v| v * v).sum::<usize>()
+            * rvec.values().map(|v| v * v).sum::<usize>();
+        ((1f64 - p as f64 / (q as f64).sqrt()) * 1_000_000f64) as usize
+    }
 }
 
 fn predict_emotion<'a>(
@@ -61,7 +81,6 @@ fn predict_emotion<'a>(
 
         assert!(k_minimals.len() <= threshold_k);
     }
-    assert!(k_minimals.len() == threshold_k);
 
     let mut assume_emotions = HashMap::new();
     for (_dist, emotion) in k_minimals.into_iter() {
@@ -179,7 +198,7 @@ fn main() -> Result<(), std::io::Error> {
     )?;
 
     let mut best_ks = BinaryHeap::with_capacity(100);
-    for p in 1..5 {
+    for p in 0..5 {
         for k in 1..20 {
             let accuracy = compute_with_kp::<std::fs::File>(
                 &train_file,

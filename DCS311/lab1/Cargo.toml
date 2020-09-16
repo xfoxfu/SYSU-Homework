@@ -8,10 +8,14 @@ edition = "2018"
 
 [[bin]]
 name = "tf-idf"
-path = "src/tf_idf.rs"
+path = "src/bin/tf_idf.rs"
 
 [[bin]]
 name = "knn-cat"
-path = "src/knn_cat.rs"
+path = "src/bin/knn_cat.rs"
+
+[[bin]]
+name = "knn-regres"
+path = "src/bin/knn_regres.rs"
 
 [dependencies]
