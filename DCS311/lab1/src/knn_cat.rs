@@ -1,97 +1,209 @@
-use std::collections::{BTreeMap, BTreeSet};
+use std::collections::{BTreeMap, BinaryHeap, HashMap};
 use std::vec::Vec;
 
-fn print_comma_delimited<V>(
-    target: &mut dyn std::io::Write,
-    mut iter: impl Iterator<Item = V>,
-) -> Result<(), std::io::Error>
-where
-    V: std::fmt::Display,
-{
-    if let Some(arg) = iter.next() {
-        write!(target, "{}", arg)?;
-
-        for arg in iter {
-            write!(target, ",{}", arg)?;
+fn passage_vector<'a>(passage: &[&'a str]) -> BTreeMap<&'a str, usize> {
+    let mut word_count = BTreeMap::new();
+    for word in passage.iter() {
+        if let Some(c) = word_count.get_mut(*word) {
+            *c += 1;
+        } else {
+            word_count.insert(*word, 1);
         }
     }
-    writeln!(target)?;
 
-    Ok(())
+    word_count
 }
 
-fn main() -> Result<(), std::io::Error> {
-    let file = std::fs::read_to_string("./lab1_data/semeval.txt")?;
+fn passage_distance(distance_p: u32, lhs: &[&str], rhs: &[&str]) -> usize {
+    let lvec = passage_vector(lhs);
+    let rvec = passage_vector(rhs);
 
-    let mut tf = Vec::new();
-    let mut idf = BTreeMap::new();
-    let mut words = BTreeSet::new();
+    let mut diff = 0usize;
 
-    for line in file.split('\n') {
-        if line.is_empty() {
+    for (lw, lc) in lvec.iter() {
+        if rvec.contains_key(lw) {
+            diff += (lc + rvec[lw]).pow(distance_p);
+        } else {
+            diff += lc.pow(distance_p);
+        }
+    }
+    for (rw, rc) in rvec.iter() {
+        if !lvec.contains_key(rw) {
+            diff += rc.pow(distance_p);
+        }
+    }
+
+    diff
+}
+
+fn predict_emotion<'a>(
+    threshold_k: usize,
+    distance_p: u32,
+    train_data: &'a BTreeMap<Vec<&str>, &str>,
+    target_passage: &'a [&str],
+) -> &'a str {
+    let mut k_minimals = BinaryHeap::<(usize, &str)>::new();
+
+    for (compare_passage, compare_emotion) in train_data.iter() {
+        let dist = passage_distance(distance_p, &target_passage, compare_passage);
+
+        if let Some((max_dist, _)) = k_minimals.peek() {
+            if *max_dist <= dist {
+                continue;
+            }
+        }
+
+        k_minimals.push((dist, compare_emotion));
+
+        if k_minimals.len() > threshold_k {
+            k_minimals.pop();
+        }
+
+        assert!(k_minimals.len() <= threshold_k);
+    }
+    assert!(k_minimals.len() == threshold_k);
+
+    let mut assume_emotions = HashMap::new();
+    for (_dist, emotion) in k_minimals.into_iter() {
+        if assume_emotions.contains_key(emotion) {
+            *assume_emotions.get_mut(emotion).unwrap() += 1;
+        } else {
+            assume_emotions.insert(emotion, 1);
+        }
+    }
+
+    let (emotion, _) = assume_emotions.into_iter().max_by_key(|(_, c)| *c).unwrap();
+
+    emotion
+}
+
+fn compute_with_kp<W: std::io::Write>(
+    train_file: &str,
+    validation_file: &str,
+    test_file: &str,
+    output_file: Option<&mut W>,
+    threshold_k: usize,
+    distance_p: u32,
+) -> Result<f64, std::io::Error> {
+    let mut train_data = BTreeMap::new();
+
+    for line in train_file.split('\n') {
+        if line == "Words (split by space),label" || line.is_empty() {
             continue;
         }
 
-        let passage = line.splitn(3, '\t').nth(2).unwrap();
+        let passage = line.split(',').next().unwrap();
+        let emotion = line.split(',').nth(1).unwrap();
 
-        let mut word_count = BTreeMap::new();
-        for word in passage.split(' ') {
-            if let Some(c) = word_count.get_mut(word) {
-                *c += 1;
-            } else {
-                word_count.insert(word.to_owned(), 1);
-            }
-        }
+        let words = passage.split(' ').collect::<Vec<_>>();
 
-        for word in word_count.keys() {
-            if !words.contains(word) {
-                words.insert(word.to_owned());
-            }
-
-            if let Some(c) = idf.get_mut(word) {
-                *c += 1;
-            } else {
-                idf.insert(word.to_owned(), 1);
-            }
-        }
-
-        let len = word_count.len() as f64;
-        tf.push(
-            word_count
-                .into_iter()
-                .map(|(k, v)| (k, v as f64 / len))
-                .collect::<BTreeMap<_, _>>(),
-        )
+        train_data.insert(words, emotion);
     }
 
-    let passage_count = tf.len() as f64;
-    let idf = idf
-        .into_iter()
-        .map(|(w, v)| (w, passage_count.log2() / (v as f64).log2()))
-        .collect::<BTreeMap<_, _>>();
+    let validation_total = validation_file
+        .split('\n')
+        .filter(|s| !s.trim().is_empty() && s != &"Words (split by space),label")
+        .count();
+    let mut validation_ok_count = 0usize;
 
-    for line in tf.iter_mut() {
-        for (word, word_tf) in line.iter_mut() {
-            *word_tf *= idf.get(word).copied().unwrap_or(0f64);
+    for line in validation_file.split('\n') {
+        if line == "Words (split by space),label" || line.is_empty() {
+            continue;
+        }
+
+        let target_passage = line
+            .split(',')
+            .next()
+            .unwrap()
+            .split(' ')
+            .collect::<Vec<_>>();
+        let target_emotion = line.split(',').nth(1).unwrap();
+
+        let emotion = predict_emotion(threshold_k, distance_p, &train_data, &target_passage);
+
+        if emotion == target_emotion {
+            validation_ok_count += 1;
         }
     }
-    let tf_idf = tf;
 
-    let mut out_f;
-    let mut out_s;
-    let out: &mut dyn std::io::Write = if let Some(f) = std::env::args().nth(1) {
-        out_f = std::fs::File::create(f)?;
-        &mut out_f
-    } else {
-        out_s = std::io::stdout();
-        &mut out_s
-    };
+    println!(
+        "P = {}, K = {}, Accuracy = {}",
+        distance_p,
+        threshold_k,
+        validation_ok_count as f64 / validation_total as f64
+    );
 
-    print_comma_delimited(out, words.iter())?;
+    if let Some(fout) = output_file {
+        for line in test_file.split('\n') {
+            if line == "textid,Words (split by space),label" || line.is_empty() {
+                continue;
+            }
 
-    for line in tf_idf.iter() {
-        print_comma_delimited(out, words.iter().map(|w| line.get(w).unwrap_or(&0f64)))?;
+            let id = line.split(',').next().unwrap();
+            let target_passage = line
+                .split(',')
+                .nth(1)
+                .unwrap()
+                .split(' ')
+                .collect::<Vec<_>>();
+
+            let emotion = predict_emotion(threshold_k, distance_p, &train_data, &target_passage);
+
+            writeln!(
+                fout,
+                "{},{},{}",
+                id,
+                line.split(',').nth(1).unwrap(),
+                emotion
+            )?;
+        }
     }
+
+    Ok(validation_ok_count as f64 / validation_total as f64)
+}
+
+fn main() -> Result<(), std::io::Error> {
+    let train_file = std::fs::read_to_string(
+        std::env::args()
+            .nth(1)
+            .unwrap_or_else(|| "./lab1_data/classification_dataset/train_set.csv".to_string()),
+    )?;
+    let validation_file =
+        std::fs::read_to_string(std::env::args().nth(1).unwrap_or_else(|| {
+            "./lab1_data/classification_dataset/validation_set.csv".to_string()
+        }))?;
+    let test_file = std::fs::read_to_string(
+        std::env::args()
+            .nth(1)
+            .unwrap_or_else(|| "./lab1_data/classification_dataset/test_set.csv".to_string()),
+    )?;
+
+    let mut best_ks = BinaryHeap::with_capacity(100);
+    for p in 1..5 {
+        for k in 1..20 {
+            let accuracy = compute_with_kp::<std::fs::File>(
+                &train_file,
+                &validation_file,
+                &test_file,
+                None,
+                k,
+                p,
+            )?;
+            best_ks.push(((accuracy * 1e10f64) as usize, k, p));
+        }
+    }
+
+    let (_accuracy, best_k, best_p) = best_ks.peek().cloned().unwrap();
+
+    let mut output = std::fs::File::create("17341039_FUYuze_KNN_classification.csv")?;
+    compute_with_kp(
+        &train_file,
+        &validation_file,
+        &test_file,
+        Some(&mut output),
+        best_k,
+        best_p,
+    )?;
 
     Ok(())
 }
