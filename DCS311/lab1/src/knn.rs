@@ -2,7 +2,7 @@ use crate::{Case, Emotion};
 use std::collections::BinaryHeap;
 
 #[derive(PartialEq)]
-pub struct DistanceObject<'a, E: Emotion>(pub usize, pub &'a E);
+pub struct DistanceObject<'a, E: Emotion>(pub f64, pub &'a E);
 impl<'a, E: Emotion> std::cmp::Eq for DistanceObject<'a, E> {}
 impl<'a, E: Emotion> std::cmp::PartialOrd for DistanceObject<'a, E> {
     fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
@@ -11,7 +11,7 @@ impl<'a, E: Emotion> std::cmp::PartialOrd for DistanceObject<'a, E> {
 }
 impl<'a, E: Emotion> std::cmp::Ord for DistanceObject<'a, E> {
     fn cmp(&self, other: &Self) -> std::cmp::Ordering {
-        self.0.cmp(&other.0)
+        self.0.partial_cmp(&other.0).unwrap()
     }
 }
 

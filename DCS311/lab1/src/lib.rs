@@ -1,6 +1,7 @@
 mod case;
 mod emotion;
 mod knn;
+mod tf_idf;
 
 pub use case::Case;
 pub use emotion::{Emotion, ExactEmotion, ProbEmotion};

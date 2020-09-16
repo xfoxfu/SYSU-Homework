@@ -1,8 +1,8 @@
-use crate::{safe_sub_abs, Emotion};
+use crate::Emotion;
 use std::collections::HashMap;
 
 pub struct Case<'a, E: Emotion> {
-    pub passage: HashMap<&'a str, usize>,
+    pub passage: HashMap<&'a str, f64>,
     pub emotion: E,
 }
 
@@ -11,9 +11,9 @@ impl<'a, E: Emotion> Case<'a, E> {
         let mut word_count = HashMap::new();
         for word in passage.split(' ') {
             if let Some(c) = word_count.get_mut(word) {
-                *c += 1;
+                *c += 1.0;
             } else {
-                word_count.insert(word, 1);
+                word_count.insert(word, 1.0);
             }
         }
 
@@ -45,31 +45,32 @@ impl<'a, E: Emotion> Case<'a, E> {
             .collect()
     }
 
-    pub fn distance(&self, rhs: &Case<'a, E>, dist_p: u32) -> usize {
+    pub fn distance(&self, rhs: &Case<'a, E>, dist_p: u32) -> f64 {
+        let p = dist_p as i32;
         if dist_p != 0 {
-            let mut diff = 0usize;
+            let mut diff = 0.0;
             for w in self.passage.keys().chain(rhs.passage.keys()) {
                 if self.passage.contains_key(w) && rhs.passage.contains_key(w) {
-                    diff +=
-                        safe_sub_abs(*self.passage.get(w).unwrap(), *rhs.passage.get(w).unwrap())
-                            .pow(dist_p);
+                    diff += (*self.passage.get(w).unwrap() - *rhs.passage.get(w).unwrap())
+                        .abs()
+                        .powi(p);
                 } else if self.passage.contains_key(w) {
-                    diff += self.passage.get(w).unwrap().pow(dist_p);
+                    diff += self.passage.get(w).unwrap().powi(p);
                 } else if rhs.passage.contains_key(w) {
-                    diff += rhs.passage.get(w).unwrap().pow(dist_p);
+                    diff += rhs.passage.get(w).unwrap().powi(p);
                 }
             }
             diff
         } else {
-            let mut p = 0;
+            let mut p = 0.0;
             for w in self.passage.keys() {
                 if rhs.passage.contains_key(w) {
                     p += self.passage[w] * rhs.passage[w];
                 }
             }
-            let q: usize = self.passage.values().map(|v| v * v).sum::<usize>()
-                * rhs.passage.values().map(|v| v * v).sum::<usize>();
-            ((1f64 - p as f64 / (q as f64).sqrt()) * 1_000_000f64) as usize
+            let q = self.passage.values().map(|v| v * v).sum::<f64>()
+                * rhs.passage.values().map(|v| v * v).sum::<f64>();
+            1f64 - p / (q as f64).sqrt()
         }
     }
 }

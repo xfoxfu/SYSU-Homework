@@ -45,7 +45,7 @@ fn predict_emotion(
     for DistanceObject(cmp_dist, cmp_emotion) in k_minimals.into_iter() {
         let cmp_vec = cmp_emotion.clone().into_vec();
         for e in 0..6 {
-            if cmp_dist != 0 {
+            if cmp_dist != 0.0 {
                 emotion_vec[e] += cmp_vec[e] / cmp_dist as f64;
             } else {
                 // infinite override
