@@ -1,5 +1,5 @@
-use lab1::ProbEmotion as Emotion;
 use lab1::{Case, DistanceObject};
+use lab1::{ProbEmotion as Emotion, TfIdfContext};
 use std::collections::BinaryHeap;
 use std::vec::Vec;
 
@@ -64,7 +64,7 @@ fn predict_emotion(
 fn compute_with_kp<W: std::io::Write>(
     train_data: &[Case<Emotion>],
     validation_data: &[Case<Emotion>],
-    test_file: &str,
+    test_data: &[(usize, Case<Emotion>)],
     output_file: Option<&mut W>,
     threshold_k: usize,
     distance_p: u32,
@@ -86,25 +86,13 @@ fn compute_with_kp<W: std::io::Write>(
     );
 
     if let Some(fout) = output_file {
-        for line in test_file.split('\n') {
-            if line == "textid,Words (split by space),anger,disgust,fear,joy,sad,surprise"
-                || line.is_empty()
-            {
-                continue;
-            }
-
-            let id = line.split(',').next().unwrap();
-            let passage = line.split(',').nth(1).unwrap();
-
-            let case = Case::new(passage);
-
+        for (id, case) in test_data.iter() {
             let emotion = predict_emotion(threshold_k, distance_p, &train_data, &case);
 
             writeln!(
                 fout,
-                "{},{},{},{},{},{},{},{}",
+                "{},{},{},{},{},{},{}",
                 id,
-                passage,
                 emotion.anger,
                 emotion.disgust,
                 emotion.fear,
@@ -135,8 +123,21 @@ fn main() -> Result<(), std::io::Error> {
             .unwrap_or_else(|| "./lab1_data/regression_dataset/test_set.csv".to_string()),
     )?;
 
-    let train_data = Case::<Emotion>::parse_from_file(&train_file);
-    let validation_data = Case::<Emotion>::parse_from_file(&validation_file);
+    let mut train_data = Case::<Emotion>::parse_from_file(&train_file);
+    let mut validation_data = Case::<Emotion>::parse_from_file(&validation_file);
+    let mut test_data = Case::<Emotion>::parse_from_file_test(&test_file);
+
+    let mut ctx = TfIdfContext::new();
+    for p in train_data.iter_mut() {
+        ctx.add_article(p)
+    }
+    for p in validation_data.iter_mut() {
+        ctx.add_article(p)
+    }
+    for (_, p) in test_data.iter_mut() {
+        ctx.add_article(p)
+    }
+    ctx.apply_idf();
 
     let mut best_ks = BinaryHeap::with_capacity(100);
     for p in 0..5 {
@@ -144,7 +145,7 @@ fn main() -> Result<(), std::io::Error> {
             let accuracy = compute_with_kp::<std::fs::File>(
                 &train_data,
                 &validation_data,
-                &test_file,
+                &test_data,
                 None,
                 k,
                 p,
@@ -159,7 +160,7 @@ fn main() -> Result<(), std::io::Error> {
     compute_with_kp(
         &train_data,
         &validation_data,
-        &test_file,
+        &test_data,
         Some(&mut output),
         best_k,
         best_p,

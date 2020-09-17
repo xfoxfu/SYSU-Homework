@@ -38,10 +38,31 @@ impl<'a, E: Emotion> Case<'a, E> {
         Self::new_with_emotion(words, emotion.parse().unwrap())
     }
 
+    pub fn from_line_test(line: &'a str) -> (usize, Self) {
+        let comma1 = line.find(',').unwrap();
+        let (id, line) = line.split_at(comma1);
+        let (_, line) = line.split_at(1);
+        let comma2 = line.find(',').unwrap();
+        let (words, emotion) = line.split_at(comma2);
+        let (_, _) = emotion.split_at(1);
+
+        (
+            id.parse().unwrap(),
+            Self::new_with_emotion(words, E::default()),
+        )
+    }
+
     pub fn parse_from_file(file: &'a str) -> Vec<Self> {
         file.split('\n')
-            .filter(|l| !l.starts_with("Words (split by space)") && !l.is_empty())
+            .filter(|l| !l.contains("Words (split by space)") && !l.is_empty())
             .map(Self::from_line)
+            .collect()
+    }
+
+    pub fn parse_from_file_test(file: &'a str) -> Vec<(usize, Self)> {
+        file.split('\n')
+            .filter(|l| !l.contains("Words (split by space)") && !l.is_empty())
+            .map(Self::from_line_test)
             .collect()
     }
 
@@ -60,7 +81,7 @@ impl<'a, E: Emotion> Case<'a, E> {
                     diff += rhs.passage.get(w).unwrap().powi(p);
                 }
             }
-            diff
+            diff.powf(1.0 / p as f64)
         } else {
             let mut p = 0.0;
             for w in self.passage.keys() {
