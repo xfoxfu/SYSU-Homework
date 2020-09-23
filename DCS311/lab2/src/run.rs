@@ -42,20 +42,9 @@ pub fn run<S: Selector>() {
         va_accept as f64 / va_count as f64
     );
 
-    let va_count = te_data.len();
-    let mut va_accept = 0usize;
-    for va in te_data.into_iter() {
-        let predict = tree.traverse(&va);
-        let actual = va.label;
-        if predict == actual {
-            va_accept += 1;
-        }
+    for mut te in te_data.into_iter() {
+        let predict = tree.traverse(&te);
+        te.label = predict;
+        println!("{}", te);
     }
-
-    println!(
-        "accuracy = {} / {} = {}",
-        va_accept,
-        va_count,
-        va_accept as f64 / va_count as f64
-    )
 }
