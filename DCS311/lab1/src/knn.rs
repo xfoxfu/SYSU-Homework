@@ -24,24 +24,28 @@ impl<'a, E: Emotion> Case<'a, E> {
     ) -> impl Iterator<Item = DistanceObject<'a, E>> {
         let mut k_minimals = BinaryHeap::<DistanceObject<E>>::new();
 
+        // 对于训练数据集的每一个点
         for case in train_data.iter() {
+            // 计算距离
             let dist = self.distance(case, distance_p);
 
+            // 若超过当前队列最大点，则直接忽略
             if let Some(DistanceObject(max_dist, _)) = k_minimals.peek() {
                 if *max_dist <= dist {
                     continue;
                 }
             }
 
+            // 否则加入队列
             k_minimals.push(DistanceObject(dist, &case.emotion));
 
+            // 并且保证队列长度在 K 以下
             if k_minimals.len() > threshold_k {
                 k_minimals.pop();
             }
 
-            assert!(k_minimals.len() <= threshold_k);
+            debug_assert!(k_minimals.len() <= threshold_k);
         }
-        // assert!(k_minimals.len() == threshold_k);
 
         k_minimals.into_iter()
     }

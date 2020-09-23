@@ -46,7 +46,7 @@ fn main() -> Result<(), std::io::Error> {
     }
     ctx.apply_idf();
 
-    let mut out = std::fs::File::create("17341039_FUYuze_TFIDF.txt.2")?;
+    let mut out = std::fs::File::create("17341039_FUYuze_TFIDF.txt")?;
 
     print_comma_delimited(&mut out, words.iter())?;
 

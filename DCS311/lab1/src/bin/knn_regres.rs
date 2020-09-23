@@ -40,10 +40,12 @@ fn predict_emotion(
 ) -> Emotion {
     let k_minimals = target_passage.predict_emotion(threshold_k, distance_p, train_data);
 
+    // 计算情感概率
     let mut emotion_vec = Vec::with_capacity(6);
     emotion_vec.resize(6, 0f64);
     for DistanceObject(cmp_dist, cmp_emotion) in k_minimals.into_iter() {
         let cmp_vec = cmp_emotion.clone().into_vec();
+        // 对于每种情感
         for e in 0..6 {
             if cmp_dist != 0.0 {
                 emotion_vec[e] += cmp_vec[e] / cmp_dist as f64;
@@ -53,6 +55,7 @@ fn predict_emotion(
             }
         }
     }
+    // 归一化
     let sum_emotion: f64 = emotion_vec.iter().sum();
     for e in emotion_vec.iter_mut() {
         *e /= sum_emotion;
