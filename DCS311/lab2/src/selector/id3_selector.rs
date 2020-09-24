@@ -7,7 +7,7 @@ pub struct Id3Selector<'a> {
 }
 
 impl<'a> Selector for Id3Selector<'_> {
-    fn best_fn<'f, F>(data: &[Case], fns: impl Iterator<Item = &'f F>) -> &'f F
+    fn best_fn<'f, F>(data: &[Case], fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
     where
         F: Fn(&Case) -> bool,
     {
@@ -81,15 +81,14 @@ impl<'a> Id3Selector<'a> {
         self.global_entropy() + self.entropy_fn(|c| selector(c)) + self.entropy_fn(|c| !selector(c))
     }
 
-    pub fn best_gain_binary_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> &'f F
+    pub fn best_gain_binary_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
     where
         F: Fn(&Case) -> bool,
     {
         fns.map(|f| (f, self.gain_binary(f)))
             .filter(|(f, _)| self.prob_if(f) > f64::EPSILON && self.prob_if(f) < 1.0 - f64::EPSILON)
             .max_by(|(_, g1), (_, g2)| (g1).partial_cmp(g2).unwrap())
-            .unwrap()
-            .0
+            .map(|(f, _)| f)
     }
 }
 

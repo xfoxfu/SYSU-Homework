@@ -8,7 +8,7 @@ pub struct C45Selector<'a> {
 }
 
 impl Selector for C45Selector<'_> {
-    fn best_fn<'f, F>(data: &[Case], fns: impl Iterator<Item = &'f F>) -> &'f F
+    fn best_fn<'f, F>(data: &[Case], fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
     where
         F: Fn(&Case) -> bool,
     {
@@ -64,7 +64,7 @@ impl<'a> C45Selector<'a> {
         self.id3.gain_binary(selector)
     }
 
-    fn best_gain_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> &'f F
+    fn best_gain_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
     where
         F: Fn(&Case) -> bool,
     {
@@ -87,15 +87,14 @@ impl<'a> C45Selector<'a> {
         self.gain_binary(|c| selector(c)) / self.split_info_binary_fn(|c| selector(c))
     }
 
-    pub fn best_ratio_binary_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> &'f F
+    pub fn best_ratio_binary_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
     where
         F: Fn(&Case) -> bool,
     {
         fns.map(|f| (f, self.gain_ratio_fn(f)))
             .filter(|(f, _)| self.prob_if(f) > f64::EPSILON && self.prob_if(f) < 1.0 - f64::EPSILON)
             .max_by(|(_, g1), (_, g2)| g1.partial_cmp(g2).unwrap())
-            .unwrap()
-            .0
+            .map(|(f, _)| f)
     }
 }
 

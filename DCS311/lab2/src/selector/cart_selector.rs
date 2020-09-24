@@ -7,7 +7,7 @@ pub struct CartSelector<'a> {
 }
 
 impl Selector for CartSelector<'_> {
-    fn best_fn<'f, F>(data: &[crate::case::Case], fns: impl Iterator<Item = &'f F>) -> &'f F
+    fn best_fn<'f, F>(data: &[crate::case::Case], fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
     where
         F: Fn(&crate::case::Case) -> bool,
     {
@@ -50,14 +50,13 @@ impl<'a> CartSelector<'a> {
             + self.prob_if(|c| !cond(c)) * self.gini_fn(|c| !cond(c))
     }
 
-    pub fn best_gini_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> &'f F
+    pub fn best_gini_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
     where
         F: Fn(&Case) -> bool,
     {
         fns.map(|f| (f, self.gini_binary(f)))
             .filter(|(f, _)| self.prob_if(f) > f64::EPSILON && self.prob_if(f) < 1.0 - f64::EPSILON)
             .min_by(|(_, g1), (_, g2)| (g1).partial_cmp(g2).unwrap())
-            .unwrap()
-            .0
+            .map(|(f, _)| f)
     }
 }

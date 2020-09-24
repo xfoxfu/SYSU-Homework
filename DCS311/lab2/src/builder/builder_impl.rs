@@ -48,18 +48,25 @@ impl<S> Builder<S>
 where
     S: Selector,
 {
-    pub fn best_fn(&self) -> CasePredicateFn {
-        *S::best_fn(&self.data, FNS.iter())
+    pub fn best_fn(&self) -> Option<CasePredicateFn> {
+        S::best_fn(&self.data, FNS.iter()).cloned()
+    }
+
+    pub fn vote_majority(&self) -> Label {
+        [Label::True, Label::False, Label::Unlabeled]
+            .iter()
+            .map(|l| (*l, self.data.iter().filter(|c| c.label == *l).count()))
+            .max_by_key(|(_, c)| *c)
+            .unwrap()
+            .0
     }
 
     pub fn into_tree(self) -> BinaryTree<CasePredicateFn, Label> {
-        if self.data.iter().all(|p| p.label == Label::True) {
-            return BinaryTree::new_leaf(Label::True);
-        } else if self.data.iter().all(|p| p.label == Label::False) {
-            return BinaryTree::new_leaf(Label::False);
-        }
-
         let f = self.best_fn();
+        if f.is_none() {
+            return BinaryTree::new_leaf(self.vote_majority());
+        }
+        let f = f.unwrap();
 
         // 左子树是真值树
         let mut left = Vec::new();
@@ -72,9 +79,6 @@ where
                 right.push(data)
             }
         }
-        // println!("left = {}, right = {}", left.len(), right.len());
-        // println!("left0  = {:?}", left.first());
-        // println!("right0 = {:?}", right.first());
 
         let left_tree = Self::with_data(left).into_tree().into_boxed();
         let right_tree = Self::with_data(right).into_tree().into_boxed();

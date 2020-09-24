@@ -11,7 +11,7 @@ use crate::case::*;
 pub trait Selector {
     // TODO: figure out how to perform this
     // fn new(data: &[Case]) -> Self;
-    fn best_fn<'f, F>(data: &[Case], fns: impl Iterator<Item = &'f F>) -> &'f F
+    fn best_fn<'f, F>(data: &[Case], fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
     where
         F: Fn(&Case) -> bool;
 }
