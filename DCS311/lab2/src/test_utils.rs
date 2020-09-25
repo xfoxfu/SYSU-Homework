@@ -7,7 +7,12 @@ mod macro_utils {
         ($lhs:expr,$rhs:expr) => {
             let lv = $lhs;
             let rv = $rhs;
-            assert!((lv - rv).abs() < f64::EPSILON, "expected {} ~= {}", lv, rv);
+            assert!(
+                ((lv) - (rv)).abs() < f64::EPSILON,
+                "expected {} ~= {}",
+                lv,
+                rv
+            );
         };
     }
 }

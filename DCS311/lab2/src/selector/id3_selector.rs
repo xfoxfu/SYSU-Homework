@@ -53,11 +53,13 @@ impl<'a> Id3Selector<'a> {
     {
         let mut sum = 0f64;
 
+        // 对于每种 Label
         sum += self.entropy(self.probability_cond_if(|c| c.label == Label::False, |c| selector(c)));
         sum += self.entropy(self.probability_cond_if(|c| c.label == Label::True, |c| selector(c)));
         sum += self
             .entropy(self.probability_cond_if(|c| c.label == Label::Unlabeled, |c| selector(c)));
 
+        // 结果乘以概率
         sum *= self.prob_if(selector);
 
         -sum
@@ -85,9 +87,9 @@ impl<'a> Id3Selector<'a> {
     where
         F: Fn(&Case) -> bool,
     {
-        fns.map(|f| (f, self.gain_binary(f)))
-            .filter(|(f, _)| self.prob_if(f) > f64::EPSILON && self.prob_if(f) < 1.0 - f64::EPSILON)
-            .max_by(|(_, g1), (_, g2)| (g1).partial_cmp(g2).unwrap())
+        fns.map(|f| (f, self.gain_binary(f))) // 获得信息增益
+            .filter(|(f, _)| self.prob_if(f) > f64::EPSILON && self.prob_if(f) < 1.0 - f64::EPSILON) // 去除无法将数据集划分为两部分的函数
+            .max_by(|(_, g1), (_, g2)| (g1).partial_cmp(g2).unwrap()) // 选择最优
             .map(|(f, _)| f)
     }
 }

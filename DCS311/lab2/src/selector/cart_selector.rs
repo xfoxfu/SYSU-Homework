@@ -36,6 +36,7 @@ impl<'a> CartSelector<'a> {
 
     pub fn gini_fn(&self, cond: impl Fn(&Case) -> bool) -> f64 {
         let mut f = 1.0;
+        // 对于每种标签
         f -= self
             .probability_cond_if(|c| c.label == Label::False, |c| cond(c))
             .powi(2);
@@ -46,8 +47,8 @@ impl<'a> CartSelector<'a> {
     }
 
     pub fn gini_binary(&self, cond: impl Fn(&Case) -> bool) -> f64 {
-        self.prob_if(|c| cond(c)) * self.gini_fn(|c| cond(c))
-            + self.prob_if(|c| !cond(c)) * self.gini_fn(|c| !cond(c))
+        self.prob_if(|c| cond(c)) * self.gini_fn(|c| cond(c)) // 为真部分
+            + self.prob_if(|c| !cond(c)) * self.gini_fn(|c| !cond(c)) // 为假部分
     }
 
     pub fn best_gini_fn<'f, F>(&self, fns: impl Iterator<Item = &'f F>) -> Option<&'f F>
@@ -59,4 +60,30 @@ impl<'a> CartSelector<'a> {
             .min_by(|(_, g1), (_, g2)| (g1).partial_cmp(g2).unwrap())
             .map(|(f, _)| f)
     }
+}
+
+#[cfg(test)]
+#[test]
+fn basic() {
+    use crate::assert_feq;
+    use crate::test_utils::make_case;
+
+    let cases = vec![
+        make_case(Buying::High, Maint::High, Label::True),
+        make_case(Buying::Low, Maint::High, Label::False),
+        make_case(Buying::High, Maint::Low, Label::False),
+        make_case(Buying::Low, Maint::Low, Label::False),
+    ];
+    let s = CartSelector::new(&cases);
+
+    assert_feq!(s.prob_if(|c| c.buying == Buying::High), 0.5);
+    assert_feq!(s.prob_if(|_| true), 1.0);
+    assert_feq!(
+        s.gini_fn(|c| c.buying == Buying::High),
+        1.0 - 0.5 * 0.5 - 0.5 * 0.5
+    );
+    assert_feq!(
+        s.gini_binary(|c| c.buying == Buying::High),
+        0.5 * (1.0 - 0.5 * 0.5 - 0.5 * 0.5) + 0.5 * 0.0 /* (1.0 - 1.0 * 1.0 - 0.0) */
+    );
 }

@@ -51,3 +51,27 @@ impl BinaryTree<fn(&Case) -> bool, Label> {
         }
     }
 }
+
+#[cfg(debug_assertions)]
+impl<V> std::fmt::Debug for BinaryTree<V, Label>
+where
+    V: Fn(&Case) -> bool,
+{
+    fn fmt(&self, fmt: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            BinaryTree::Vertex {
+                predicate: f,
+                left_child: l,
+                right_child: r,
+            } => {
+                let fname = super::builder_impl::_debug_print_fn(f);
+                fmt.debug_tuple("Vertex")
+                    .field(&fname)
+                    .field(&l)
+                    .field(&r)
+                    .finish()
+            }
+            BinaryTree::Leaf { value } => fmt.debug_tuple("Leaf").field(value).finish(),
+        }
+    }
+}

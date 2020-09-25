@@ -1,7 +1,8 @@
 use crate::builder::Builder;
 use crate::case::Case;
-use crate::conf::{TEST_POSITION, TRAIN_POSITION, VALIDATION_POSITION};
+use crate::conf::*;
 use crate::selector::Selector;
+use std::io::Write;
 use std::io::{BufRead, BufReader};
 use std::str::FromStr;
 
@@ -42,9 +43,13 @@ pub fn run<S: Selector>() {
         va_accept as f64 / va_count as f64
     );
 
+    let mut result = std::fs::File::create(TEST_RESULT).unwrap();
     for mut te in te_data.into_iter() {
         let predict = tree.traverse(&te);
         te.label = predict;
-        println!("{}", te);
+        writeln!(&mut result, "{}", te).unwrap();
     }
+
+    #[cfg(debug_assertions)]
+    crate::builder::print_tree(&mut std::fs::File::create(TREE_RESULT).unwrap(), &tree);
 }
