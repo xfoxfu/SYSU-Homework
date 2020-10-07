@@ -1,5 +1,7 @@
 #include "matrix.hpp"
 #include "product.hpp"
+#include <algorithm>
+#include <cmath>
 #include <cstring>
 #include <iostream>
 
@@ -36,6 +38,15 @@ int main(int argc, char **argv) {
   auto end = std::chrono::high_resolution_clock::now();
   std::chrono::duration<double, std::milli> diff = end - start;
   std::cout << "Time to compute matrix production : " << diff.count()
+            << " ms\n";
+  // record start time
+  auto start2 = std::chrono::high_resolution_clock::now();
+  // do some work
+  Matrix Z = product_strassen(L, R);
+  // record end time
+  auto end2 = std::chrono::high_resolution_clock::now();
+  std::chrono::duration<double, std::milli> diff2 = end2 - start2;
+  std::cout << "Time to compute matrix production : " << diff2.count()
             << " ms\n";
   if (output) {
     std::cout << Y;

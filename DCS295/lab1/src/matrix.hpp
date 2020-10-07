@@ -6,7 +6,7 @@
 
 class Matrix {
 public:
-  typedef double data_t;
+  typedef long double data_t;
 
   Matrix();
   explicit Matrix(size_t n);
@@ -14,21 +14,22 @@ public:
   Matrix(size_t, size_t, bool);
   Matrix(Matrix &) = delete;
   Matrix(Matrix &&);
+  Matrix(data_t *, size_t, size_t);
 
   Matrix &operator=(const Matrix &) = delete;
   Matrix &operator=(Matrix &&);
 
   virtual ~Matrix();
 
-  size_t m() const;
-  size_t n() const;
+  virtual size_t m() const;
+  virtual size_t n() const;
 
-  data_t &operator()(size_t, size_t);
-  const data_t &operator()(size_t, size_t) const;
+  virtual data_t &operator()(size_t, size_t);
+  virtual const data_t &operator()(size_t, size_t) const;
   Matrix operator+(const Matrix &) const;
-  Matrix &operator+=(const Matrix &);
+  // Matrix &operator+=(const Matrix &);
   Matrix operator-(const Matrix &) const;
-  Matrix &operator-=(const Matrix &);
+  // Matrix &operator-=(const Matrix &);
   friend std::ostream &operator<<(std::ostream &, const Matrix &);
 
   bool is_consistent_product(const Matrix &) const;
@@ -36,8 +37,9 @@ public:
 
   Matrix clone() const;
 
-private:
+  // protected:
   size_t _n;
   size_t _m;
   data_t *_data;
+  bool _need_free;
 };

@@ -6,8 +6,11 @@ enable_testing()
 
 add_executable(lab1 
     src/main.cpp
+    src/matrix_extended.cpp
+    src/matrix_truncated.cpp
     src/matrix.cpp
     src/prod_standard.cpp
+    src/prod_strassen.cpp
 )
 
 target_compile_features(lab1 PUBLIC cxx_std_17)
