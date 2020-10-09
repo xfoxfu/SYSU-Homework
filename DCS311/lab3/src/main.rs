@@ -34,32 +34,13 @@ macro_rules! main_fn {
                 .lines()
                 .map(|s| s.unwrap().parse().unwrap())
                 .collect::<Vec<_>>();
-            let va_cases = BufReader::new(std::fs::File::open(VALIDATION_POSITION).unwrap())
-                .lines()
-                .map(|s| s.unwrap().parse().unwrap())
-                .collect::<Vec<_>>();
 
-            for eta_i in (10..=1000).step_by(10) {
-                let eta = eta_i as f64 * 1e-8;
-                for threshold in 0..50 {
-                    let mut learner = $s::new(tr_cases.iter(), eta);
-                    learner.iterate_n(threshold);
-
-                    let va_total = va_cases.len();
-                    let mut va_correct = 0;
-                    for case in va_cases.iter() {
-                        if learner.guess(case) == case.tag {
-                            va_correct += 1;
-                        }
-                    }
-                    println!(
-                        "eta = {}, threshold = {}, correct rate = {:2.2}% ({:4}/{:4})",
-                        eta,
-                        threshold,
-                        100.0 * va_correct as f64 / va_total as f64,
-                        va_correct,
-                        va_total
-                    );
+            let mut learner = $s::new(tr_cases.iter(), 1.0);
+            for k in 0..10 {
+                learner.iterate();
+                println!("##### {:2} #####", k);
+                for (i, case) in tr_cases.iter().enumerate() {
+                    println!("{} => {}", i, learner.guess(case));
                 }
             }
 
