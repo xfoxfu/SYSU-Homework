@@ -3,6 +3,9 @@
 TransposedMatrix::TransposedMatrix(size_t m, size_t n) : Matrix(n, m) {}
 TransposedMatrix::TransposedMatrix(size_t m, size_t n, bool d)
     : Matrix(n, m, d) {}
+TransposedMatrix::TransposedMatrix(TransposedMatrix::data_t *data, size_t m,
+                                   size_t n)
+    : Matrix(data, n, m) {}
 TransposedMatrix::~TransposedMatrix() {}
 
 size_t TransposedMatrix::m() const { return Matrix::n(); }

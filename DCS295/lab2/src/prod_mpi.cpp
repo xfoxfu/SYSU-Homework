@@ -1,15 +1,25 @@
 #include "matrix_transposed.hpp"
 #include "product.hpp"
+#include <cassert>
 #include <mpi.h>
 
 struct MPI_Tags {
   MPI_Tags(int rank) : rank(rank) {}
   int rank;
 
-  int len() { return rank * 4 + 0; }
+  int ctx() { return rank * 4 + 0; }
   int lhs() { return rank * 4 + 1; }
   int rhs() { return rank * 4 + 2; }
   int ret() { return rank * 4 + 3; }
+};
+
+struct SharedContext {
+  size_t m;
+  size_t n;
+  size_t k;
+
+  SharedContext() : SharedContext(0, 0, 0) {}
+  SharedContext(size_t m, size_t n, size_t k) : m(m), n(n), k(k) {}
 };
 
 Matrix::data_t dot_product(const Matrix::data_t *lhs, const Matrix::data_t *rhs,
@@ -27,71 +37,86 @@ Matrix product_mpi_master(int mpi_size, int mpi_rank, const Matrix &lhs,
 
   lhs.ensure_consistent_product(rhs);
   size_t M = lhs.m(), N = rhs.m(), K = rhs.n();
+  SharedContext ctx(M, N, K);
   Matrix result = Matrix(M, K);
 
-  MPI_Request *mpi_send_req = new MPI_Request[M * K * 3];
-  MPI_Request *mpi_recv_req = new MPI_Request[M * K];
+  // copy rhs to every worker
+  MPI_Request *mpi_req_send_rhs = new MPI_Request[mpi_size];
+  for (int i = 0; i < mpi_size; i++) {
+    // tell context
+    MPI_Send(&ctx, sizeof(ctx), MPI_CHAR, i, MPI_Tags(i).ctx(), MPI_COMM_WORLD);
+    // tell matrix
+    MPI_Isend(rhs._data, N * K, MPI_LONG_DOUBLE, i, MPI_Tags(i).rhs(),
+              MPI_COMM_WORLD, mpi_req_send_rhs + i);
+  }
+
+  // distribute lhs by row
+  MPI_Request *mpi_req_send_lhs = new MPI_Request[M];
+  MPI_Request *mpi_req_ret = new MPI_Request[M];
   for (size_t i = 0; i < M; i++) {
-    for (size_t j = 0; j < K; j++) {
-      size_t pos = i * K + j;
-      int id = pos % mpi_size;
-      MPI_Isend(&N, 1, MPI_UNSIGNED_LONG, id, MPI_Tags(id).len(),
-                MPI_COMM_WORLD, &mpi_send_req[pos * 3 + 0]);
-      // product A_i* B_*j
-      //   std::cout << "sending (" << i << "," << j << ") to " << id <<
-      //   std::endl;
-      MPI_Isend(lhs._data + i * N, N, MPI_LONG_DOUBLE, id, MPI_Tags(id).lhs(),
-                MPI_COMM_WORLD, &mpi_send_req[pos * 3 + 1]);
-      assert(dynamic_cast<const TransposedMatrix *>(&rhs) != nullptr);
-      MPI_Isend(rhs._data + j * N, N, MPI_LONG_DOUBLE, id, MPI_Tags(id).rhs(),
-                MPI_COMM_WORLD, &mpi_send_req[pos * 3 + 2]);
-      MPI_Irecv(&result._data[pos], 1, MPI_LONG_DOUBLE, id, MPI_Tags(id).ret(),
-                MPI_COMM_WORLD, &mpi_recv_req[pos]);
-    }
+    int to = i % mpi_size;
+    MPI_Isend(lhs._data + i * N, N, MPI_LONG_DOUBLE, to, MPI_Tags(to).lhs(),
+              MPI_COMM_WORLD, mpi_req_send_lhs + i);
+    MPI_Irecv(result._data + i * N, N, MPI_LONG_DOUBLE, to, MPI_Tags(to).ret(),
+              MPI_COMM_WORLD, mpi_req_ret + i);
   }
-  for (int id = 0; id < mpi_size; id++) {
-    size_t term = 0;
-    MPI_Send(&term, 1, MPI_UNSIGNED_LONG, id, MPI_Tags(id).len(),
-             MPI_COMM_WORLD);
-  }
-  //   std::cout << "Send of 0 finsihed" << std::endl;
 
   product_mpi_worker(mpi_size, mpi_rank);
 
-  MPI_Waitall(M * K * 3, mpi_send_req, MPI_STATUSES_IGNORE);
-  MPI_Waitall(M * K, mpi_recv_req, MPI_STATUSES_IGNORE);
-  //   std::cout << "returned" << std::endl;
-  delete[] mpi_send_req;
-  delete[] mpi_recv_req;
+  MPI_Waitall(mpi_size, mpi_req_send_rhs, MPI_STATUSES_IGNORE);
+  MPI_Waitall(M, mpi_req_send_lhs, MPI_STATUSES_IGNORE);
+  MPI_Waitall(M, mpi_req_ret, MPI_STATUSES_IGNORE);
+
+  delete[] mpi_req_send_rhs;
+  delete[] mpi_req_send_lhs;
+  delete[] mpi_req_ret;
 
   return result;
 }
 
 void product_mpi_worker(int mpi_size, int mpi_rank) {
   (void)(mpi_size);
-  // receive length
-  size_t len;
-  MPI_Status status;
-  while (MPI_Recv(&len, 1, MPI_UNSIGNED_LONG, 0, MPI_Tags(mpi_rank).len(),
-                  MPI_COMM_WORLD, &status),
-         len != 0) {
-    // receive matrix
-    // std::cout << mpi_rank << ": recv = " << len << std::endl;
-    Matrix::data_t *lhs = new Matrix::data_t[len];
-    MPI_Recv(lhs, len, MPI_LONG_DOUBLE, 0, MPI_Tags(mpi_rank).lhs(),
-             MPI_COMM_WORLD, &status);
-    Matrix::data_t *rhs = new Matrix::data_t[len];
-    MPI_Recv(rhs, len, MPI_LONG_DOUBLE, 0, MPI_Tags(mpi_rank).rhs(),
-             MPI_COMM_WORLD, &status);
+  (void)(mpi_rank);
+
+  // receive context
+  MPI_Tags tags(mpi_rank);
+  SharedContext ctx;
+  MPI_Recv(&ctx, sizeof(ctx), MPI_CHAR, 0, tags.ctx(), MPI_COMM_WORLD,
+           MPI_STATUS_IGNORE);
+
+  // receive rhs matrix
+  Matrix::data_t *data = new Matrix::data_t[ctx.n * ctx.k];
+  TransposedMatrix mat(data, ctx.n, ctx.k);
+  MPI_Recv(data, ctx.n * ctx.k, MPI_LONG_DOUBLE, 0, tags.rhs(), MPI_COMM_WORLD,
+           MPI_STATUS_IGNORE);
+
+  size_t recv_count =
+      (ctx.m / mpi_size) + ((size_t)mpi_rank < (ctx.m % mpi_size));
+
+  Matrix vec(recv_count, ctx.k);
+  Matrix ret(recv_count, ctx.k);
+  MPI_Request *mpi_req_ret = new MPI_Request[recv_count];
+  for (size_t i = 0; i < recv_count; i++) {
+    // receive
+    MPI_Recv(&vec(i, 0), ctx.n, MPI_LONG_DOUBLE, 0, tags.lhs(), MPI_COMM_WORLD,
+             MPI_STATUS_IGNORE);
 
     // compute
-    auto v = dot_product(lhs, rhs, len);
-    MPI_Send(&v, 1, MPI_LONG_DOUBLE, 0, MPI_Tags(mpi_rank).ret(),
-             MPI_COMM_WORLD);
+    for (size_t j = 0; j < ctx.n; j++) {
+      for (size_t k = 0; k < ctx.k; k++) {
+        ret(i, k) += vec(i, j) * mat(j, k);
+      }
+    }
 
-    delete[] lhs;
-    delete[] rhs;
+    // send
+    MPI_Isend(&ret(i, 0), ctx.n, MPI_LONG_DOUBLE, 0, tags.ret(), MPI_COMM_WORLD,
+              mpi_req_ret + i);
   }
 
-  //   std::cout << "compute of " << mpi_rank << " finished" << std::endl;
+  // wait for send buffer to complete
+  MPI_Waitall(recv_count, mpi_req_ret, MPI_STATUSES_IGNORE);
+
+  // recycle memory
+  delete[] data;
+  delete[] mpi_req_ret;
 }
