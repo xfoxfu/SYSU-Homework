@@ -7,8 +7,10 @@ enable_testing()
 add_executable(lab2 
     src/main.cpp
     src/matrix_extended.cpp
+    src/matrix_transposed.cpp
     src/matrix_truncated.cpp
     src/matrix.cpp
+    src/prod_mpi.cpp
     src/prod_standard.cpp
     src/prod_strassen.cpp
 )
