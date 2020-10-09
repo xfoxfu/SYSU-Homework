@@ -51,12 +51,12 @@ int main(int argc, char **argv) {
   }
 
   if (mpi_rank != 0) {
-    product_mpi_worker(mpi_size, mpi_rank);
+    product_mpi(mpi_size, mpi_rank, nullptr, nullptr);
   } else {
     // record start time
     auto start = std::chrono::high_resolution_clock::now();
     // do some work
-    Matrix Z = product_mpi_master(mpi_size, mpi_rank, L, R);
+    Matrix Z = product_mpi(mpi_size, mpi_rank, &L, &R);
     // record end time
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> diff = end - start;
