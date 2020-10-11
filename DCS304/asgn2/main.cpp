@@ -1,10 +1,14 @@
 #include "Triangle.hpp"
 #include "rasterizer.hpp"
+#include <cmath>
 #include <eigen3/Eigen/Eigen>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
 constexpr double MY_PI = 3.1415926;
+template <typename T> inline T angle_to_radius(T angle) {
+  return angle / 180 * M_PI;
+}
 
 Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos) {
   Eigen::Matrix4f view = Eigen::Matrix4f::Identity();
@@ -21,22 +25,34 @@ Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos) {
 Eigen::Matrix4f get_model_matrix(float rotation_angle) {
   Eigen::Matrix4f model = Eigen::Matrix4f::Identity();
 
-  // TODO: Implement this function
-  // Create the model matrix for rotating the triangle around the Z axis.
-  // Then return it.
+  float rot_rad = angle_to_radius(rotation_angle);
+  float cos_rot = cos(rot_rad);
+  float sin_rot = sin(rot_rad);
+
+  model << cos_rot, -sin_rot, 0, 0, // row 0
+      sin_rot, cos_rot, 0, 0,       // row 1
+      0, 0, 1, 0,                   // row 2
+      0, 0, 0, 1;                   // row 3
 
   return model;
 }
 
 Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio,
-                                      float zNear, float zFar) {
+                                      float z_near, float z_far) {
   // Students will implement this function
 
-  Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
+  Eigen::Matrix4f projection;
 
-  // TODO: Implement this function
-  // Create the projection matrix for the given parameters.
-  // Then return it.
+  float n = -z_near;
+  float f = -z_far;
+
+  float h = 2 * z_near * tan(angle_to_radius(eye_fov / 2));
+  float w = h * aspect_ratio;
+
+  projection << 2 * n / w, 0, 0, 0,                   // x
+      0, 2 * n / h, 0, 0,                             // y
+      0, 0, -(f + n) / (f - n), -2 * f * n / (f - n), // z
+      0, 0, -1, 0;                                    // w
 
   return projection;
 }
