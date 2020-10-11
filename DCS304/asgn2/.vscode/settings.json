@@ -1,0 +1,8 @@
+{
+    "editor.formatOnSaveMode": "modifications",
+    "files.associations": {
+        "stdexcept": "cpp",
+        "eigen": "cpp"
+    },
+    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools"
+}
