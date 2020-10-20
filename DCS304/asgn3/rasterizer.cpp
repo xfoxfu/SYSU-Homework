@@ -53,21 +53,17 @@ static bool insideTriangle(int x, int y, const Vector3f* _v)
     Vector3f b(_v[1].x(), _v[1].y(), 0);
     Vector3f c(_v[2].x(), _v[2].y(), 0);
 
-    Vector3f v0 = c - a;
-    Vector3f v1 = b - a;
-    Vector3f v2 = p - a;
+    Vector3f AB = b - a;
+    Vector3f BC = c - b;
+    Vector3f CA = a - c;
+    Vector3f AP = p - a;
+    Vector3f BP = p - b;
+    Vector3f CP = p - c;
+    float f0 = AB.cross(AP).z();
+    float f1 = BC.cross(BP).z();
+    float f2 = CA.cross(CP).z();
 
-    float dot00 = v0.dot(v0);
-    float dot01 = v0.dot(v1);
-    float dot02 = v0.dot(v2);
-    float dot11 = v1.dot(v1);
-    float dot12 = v1.dot(v2);
-
-    float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
-    float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
-    float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
-
-    return u >= 0 and v >= 0 and (u + v) < 1;
+    return (f0 > 0 && f1 > 0 && f2 > 0) || (f0 < 0 && f1 < 0 && f2 < 0);
     // clang-format off
 }
 
