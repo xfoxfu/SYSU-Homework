@@ -47,8 +47,28 @@ static float cross2D(float x1, float y1, float x2, float y2)
 static bool insideTriangle(int x, int y, const Vector3f* _v)
 {   
     // TODO 2: Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
-	
-	return true;
+    // clang-format on
+    Vector3f p(x, y, 0);
+    Vector3f a(_v[0].x(), _v[0].y(), 0);
+    Vector3f b(_v[1].x(), _v[1].y(), 0);
+    Vector3f c(_v[2].x(), _v[2].y(), 0);
+
+    Vector3f v0 = c - a;
+    Vector3f v1 = b - a;
+    Vector3f v2 = p - a;
+
+    float dot00 = v0.dot(v0);
+    float dot01 = v0.dot(v1);
+    float dot02 = v0.dot(v2);
+    float dot11 = v1.dot(v1);
+    float dot12 = v1.dot(v2);
+
+    float invDenom = 1 / (dot00 * dot11 - dot01 * dot01);
+    float u = (dot11 * dot02 - dot01 * dot12) * invDenom;
+    float v = (dot00 * dot12 - dot01 * dot02) * invDenom;
+
+    return u >= 0 and v >= 0 and (u + v) < 1;
+    // clang-format off
 }
 
 static std::tuple<float, float, float> computeBarycentric2D(float x, float y, const Vector3f* v)
@@ -116,10 +136,15 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 	float ymin = FLT_MAX, ymax = FLT_MIN;
     // TODO 1: Find out the bounding box of current triangle.
     {
-
+        // clang-format on
+        xmin = std::min({v[0].x(), v[1].x(), v[2].x()});
+        ymin = std::min({v[0].y(), v[1].y(), v[2].y()});
+        xmax = std::max({v[0].x(), v[1].x(), v[2].x()});
+        ymax = std::max({v[0].y(), v[1].y(), v[2].y()});
+        // clang-format off
     }
     // After you have calculated the bounding box, please comment the following code.
-    return;
+    // return;
 	
 	// iterate through the pixel and find if the current pixel is inside the triangle
 	for(int x = static_cast<int>(xmin);x <= xmax;++x)
@@ -138,10 +163,16 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
 			z_interpolated *= w_reciprocal;
 			
 			// TODO 3: perform Z-buffer algorithm here.
-			
+            // clang-format on
+            if (z_interpolated < depth_buf[get_index(x, y)])
+            {
+                depth_buf[get_index(x, y)] = z_interpolated;
+                frame_buf[get_index(x, y)] = 255.0f * t.color[0];
+            }
+            // clang-format off
 			
             // set the pixel color to frame buffer.
-			frame_buf[get_index(x,y)] = 255.0f * t.color[0];
+			// frame_buf[get_index(x,y)] = 255.0f * t.color[0];
 		}
 	}
 

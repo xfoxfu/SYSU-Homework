@@ -6,6 +6,9 @@
 #include "Triangle.hpp"
 
 constexpr double MY_PI = 3.1415926;
+template <typename T> inline T angle_to_radius(T angle) {
+  return angle / 180 * M_PI;
+}
 
 Eigen::Matrix4f get_view_matrix(Eigen::Vector3f eye_pos)
 {
@@ -28,23 +31,22 @@ Eigen::Matrix4f get_model_matrix(float rotation_angle)
     return model;
 }
 
-Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float zNear, float zFar)
+Eigen::Matrix4f get_projection_matrix(float eye_fov, float aspect_ratio, float z_near, float z_far)
 {
-    // TODO: Copy-paste your implementation from the previous assignment.
-    Eigen::Matrix4f projection = Eigen::Matrix4f::Identity();
-	
-	// solution of the last assignment.
-    eye_fov = eye_fov * 3.1415926535f / 180.0f;
-    float m00 = -1.0f/(std::tan(eye_fov/2.0));
-    float m11 = m00/aspect_ratio;
-    float m22 = (zNear+zFar)/(zFar-zNear);
-    float m23 = (2*zFar*zNear)/(zFar-zNear);
-    projection << m00, 0.0f, 0.0f, 0.0f,
-                  .0f,  m11, 0.0f, 0.0f,
-                  .0f, 0.0f,  m22,  m23,
-                  .0f, 0.0f, 1.0f, 0.0f;
+  Eigen::Matrix4f projection;
 
-    return projection;
+  float n = z_near;
+  float f = z_far;
+
+  float h = 2 * z_near * tan(angle_to_radius(eye_fov / 2));
+  float w = h * aspect_ratio;
+
+  projection << 2 * n / w, 0, 0, 0,                   // x
+      0, 2 * n / h, 0, 0,                             // y
+      0, 0, -(f + n) / (f - n), -2 * f * n / (f - n), // z
+      0, 0, -1, 0;                                    // w
+
+  return projection;
 }
 
 int main(int argc, const char** argv)
