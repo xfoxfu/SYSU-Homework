@@ -44,7 +44,7 @@ static float cross2D(float x1, float y1, float x2, float y2)
 	return x1 * y2 - x2 * y1;
 }
 
-static bool insideTriangle(int x, int y, const Vector3f* _v)
+static bool insideTriangle(float x, float y, const Vector3f* _v)
 {   
     // TODO 2: Implement this function to check if the point (x, y) is inside the triangle represented by _v[0], _v[1], _v[2]
     // clang-format on
@@ -162,8 +162,17 @@ void rst::rasterizer::rasterize_triangle(const Triangle& t) {
             // clang-format on
             if (z_interpolated < depth_buf[get_index(x, y)])
             {
+                Vector3f color(0, 0, 0);
+                for (float x_diff : {-0.5, 0.5})
+                {
+                    for (float y_diff : {-0.5, 0.5})
+                    {
+                        if (insideTriangle(x + x_diff, y + y_diff, t.v))
+                            color += t.color[0];
+                    }
+                }
                 depth_buf[get_index(x, y)] = z_interpolated;
-                frame_buf[get_index(x, y)] = 255.0f * t.color[0];
+                frame_buf[get_index(x, y)] = 255.0f * color / 4.0f;
             }
             // clang-format off
 			
