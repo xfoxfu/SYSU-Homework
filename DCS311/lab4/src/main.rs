@@ -10,12 +10,12 @@ use layer::{Context, Layer};
 use network::Network;
 use sigmoid::{Activate, Function};
 
-const TR_POSITION: &str = "dataset/train_tr.csv";
-const VA_POSITION: &str = "dataset/train_va.csv";
-const TE_DIR: &str = "dataset/train_va.csv";
-// const TR_POSITION: &str = "dataset/check_tr.csv";
-// const VA_POSITION: &str = "dataset/check_tr.csv";
-// const TE_DIR: &str = "dataset/check_va.csv";
+// const TR_POSITION: &str = "dataset/train_tr.csv";
+// const VA_POSITION: &str = "dataset/train_va.csv";
+// const TE_DIR: &str = "dataset/train_va.csv";
+const TR_POSITION: &str = "dataset/check_tr.csv";
+const VA_POSITION: &str = "dataset/check_tr.csv";
+const TE_DIR: &str = "dataset/check_va.csv";
 
 fn main() -> std::io::Result<()> {
     let va_cases = BufReader::new(std::fs::File::open(VA_POSITION).unwrap())

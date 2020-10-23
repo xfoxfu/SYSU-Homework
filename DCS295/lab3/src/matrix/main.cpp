@@ -1,11 +1,8 @@
 #include <algorithm>
 #include <chrono>
-#include <cmath>
-#include <cstring>
 #include <iostream>
-#include <thread>
-#include <vector>
 #include <pthread.h>
+#include <cstring>
 
 #include "errors.hpp"
 #include "matrix_transposed.hpp"
@@ -46,7 +43,7 @@ int main(int argc, char **argv)
     return MATRIX_THREAD_LIMIT_EXCEED;
   }
   bool output = false;
-  if (argc > 5 && std::strcmp(argv[5], "--output") == 0)
+  if (argc > 5 && strcmp(argv[5], "--output") == 0)
   {
     output = true;
   }
@@ -79,6 +76,7 @@ int main(int argc, char **argv)
     std::cout << Z;
   }
 
+#ifndef NDEBUG // debug assertion
   // record start time
   auto start2 = std::chrono::high_resolution_clock::now();
   // do some work
@@ -99,6 +97,7 @@ int main(int argc, char **argv)
       }
     }
   }
+#endif
 
   return MATRIX_OK;
 }
@@ -136,8 +135,6 @@ void *worker_wrapper(void *args_)
   worker(args->id, args->threads, *args->lhs, *args->rhs, *args->out);
   return nullptr;
 }
-
-std::mutex lock;
 
 void worker(size_t id, size_t threads, const Matrix &lhs, const Matrix &rhs, Matrix &out)
 {

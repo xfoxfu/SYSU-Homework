@@ -3,9 +3,9 @@ use nalgebra::VectorN;
 
 pub struct Network {
     cases: Vec<(VectorN<f64, nalgebra::U13>, VectorN<f64, nalgebra::U1>)>,
-    pub layer1: Layer<nalgebra::U13, nalgebra::U10>,
-    pub layer2: Layer<nalgebra::U10, nalgebra::U10>,
-    pub layer3: Layer<nalgebra::U10, nalgebra::U1>,
+    pub layer1: Layer<nalgebra::U13, nalgebra::U80>,
+    pub layer2: Layer<nalgebra::U80, nalgebra::U80>,
+    pub layer3: Layer<nalgebra::U80, nalgebra::U1>,
     ctx: Context,
 }
 
