@@ -1,4 +1,4 @@
-#include "product.hpp"
+#include "matrix.hpp"
 
 Matrix product_standard(const Matrix &L, const Matrix &R)
 {
