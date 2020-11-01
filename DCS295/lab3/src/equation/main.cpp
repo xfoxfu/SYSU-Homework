@@ -137,7 +137,7 @@ void *worker_neg_b(worker_param *param)
 
 void *worker_delta(worker_param *param)
 {
-    *param->sqrt_delta = std::sqrt(param->b * 2 - 4 * param->a * param->c);
+    *param->sqrt_delta = std::sqrt(param->b * param->b - 4 * param->a * param->c);
     param->sem_sqrt_delta->up();
     param->sem_sqrt_delta->up();
     return nullptr;
