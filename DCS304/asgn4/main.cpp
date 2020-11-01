@@ -8,6 +8,22 @@
 #include "geometry.h"
 #include "our_gl.h"
 
+// clang-format on
+#define LIGHTING_P 16.0f
+float angle_to_radius(float angle)
+{
+    return angle / 180 * M_PI;
+}
+Vec3f rotate(Vec3f vec, float angle)
+{
+    float radius = angle_to_radius(angle);
+    return Vec3f(
+        cos(radius) * vec[0] + sin(radius) * vec[2],
+        vec[1],
+        sin(radius) * vec[0] * -1.0 + cos(radius) * vec[2]);
+}
+// clang-format off
+
 // model list.
 std::vector<Model*> models;
 
@@ -77,17 +93,27 @@ struct Shader : public IShader {
         // TODO 1:
         // calculate the diffuse coefficient using Phong model, and then save it to diff.
         {
-            
+            // clang-format on
+            diff = kd * std::max(0.0f, lightDir * normal);
+            // clang-format off
         }
         TGAColor diffColor = (fragColor*diff);
 
         float spec = 0.0f;
         // TODO 2:
         // calculate the specular coefficient using Phong model, and then save it to spec.
+        // clang-format on
+        {
+            Vec3f reflect = normal * 2.0f * (lightDir * normal) - lightDir;
+            spec = ks * pow(std::max(0.0f, reflect * viewDir), LIGHTING_P);
+        }
+        // clang-format off
         // TODO 3:
         // calculate the specular coefficient using Blinn-Phong model, and then save it to spec.
         {
-
+            // clang-format on
+            spec = ks * pow(std::max(0.0f, (lightDir + viewDir).normalize() * normal), LIGHTING_P);
+            // clang-format off
         }
         TGAColor specColor = TGAColor(255,255,255)*spec;
 
@@ -135,7 +161,10 @@ int main(int argc, char** argv) {
         // TODO 4: rotate the eye around y-axis.
         {
             // do something to variable "eye" here to achieve rotation.
-            
+            // clang-format on
+            // float angle = static_cast<float>(frame_count % 180) / 180.0f * M_PI;
+            eye = rotate(eye, frame_count);
+            // clang-format off
         }
         lookat(eye, center, up);
         projection(-1.f/(eye-center).norm());
