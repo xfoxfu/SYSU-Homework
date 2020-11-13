@@ -1,0 +1,77 @@
+2
+M=2,N=2,K=2
+OMP Normal: 1.23767 ms
+OMP Static: 0.038739 ms
+OMP Dynamic: 0.07926 ms
+Parallel For: 0.214495 ms
+Normal Method: 0.002161 ms
+4
+M=4,N=4,K=4
+OMP Normal: 1.0892 ms
+OMP Static: 0.043465 ms
+OMP Dynamic: 0.057967 ms
+Parallel For: 0.224183 ms
+Normal Method: 0.004177 ms
+8
+M=8,N=8,K=8
+OMP Normal: 0.988186 ms
+OMP Static: 0.050818 ms
+OMP Dynamic: 0.053402 ms
+Parallel For: 0.243129 ms
+Normal Method: 0.036888 ms
+16
+M=16,N=16,K=16
+OMP Normal: 3.01466 ms
+OMP Static: 0.34725 ms
+OMP Dynamic: 0.335554 ms
+Parallel For: 0.220307 ms
+Normal Method: 0.172333 ms
+32
+M=32,N=32,K=32
+OMP Normal: 1.89807 ms
+OMP Static: 2.28329 ms
+OMP Dynamic: 1.4827 ms
+Parallel For: 0.392992 ms
+Normal Method: 1.37949 ms
+64
+M=64,N=64,K=64
+OMP Normal: 5.20878 ms
+OMP Static: 5.61323 ms
+OMP Dynamic: 3.40131 ms
+Parallel For: 1.40648 ms
+Normal Method: 11.0463 ms
+128
+M=128,N=128,K=128
+OMP Normal: 17.9615 ms
+OMP Static: 19.1786 ms
+OMP Dynamic: 9.95686 ms
+Parallel For: 9.89186 ms
+Normal Method: 83.2359 ms
+256
+M=256,N=256,K=256
+OMP Normal: 112.767 ms
+OMP Static: 83.5885 ms
+OMP Dynamic: 79.068 ms
+Parallel For: 76.1615 ms
+Normal Method: 486.086 ms
+512
+M=512,N=512,K=512
+OMP Normal: 589.703 ms
+OMP Static: 640.586 ms
+OMP Dynamic: 598.77 ms
+Parallel For: 559.102 ms
+Normal Method: 3411.07 ms
+1024
+M=1024,N=1024,K=1024
+OMP Normal: 4709.62 ms
+OMP Static: 5064.57 ms
+OMP Dynamic: 5759.15 ms
+Parallel For: 4375.86 ms
+Normal Method: 26603.3 ms
+2048
+M=2048,N=2048,K=2048
+OMP Normal: 43378.7 ms
+OMP Static: 46910.2 ms
+OMP Dynamic: 44029.9 ms
+Parallel For: 39167.5 ms
+Normal Method: 215020 ms
