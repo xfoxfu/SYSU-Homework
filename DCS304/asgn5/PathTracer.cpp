@@ -4,8 +4,22 @@
 #include <iostream>
 #include <time.h>
 
+bool hit_sphere(const vec3 &ce, double ra, const ray &ry)
+{
+	vec3 oc = ry.origin() - ce;
+	double a = dot(ry.direction(), ry.direction());
+	double b = 2.0 * dot(oc, ry.direction());
+	double c = dot(oc, oc) - ra * ra;
+	float delta = b * b - 4 * a * c;
+	return delta > 0;
+}
+
 vec3 ray_color(const ray &r)
 {
+	if (hit_sphere(vec3(0.0, 0.0, -1.0), 0.5, r))
+	{
+		return vec3(1.0, 0.0, 0.0); // red
+	}
 	vec3 unit_direction = unit_vector(r.direction());
 	float t = 0.5 * (unit_direction.y() + 1.0);
 	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
@@ -43,7 +57,7 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	// record start time.
 	double startFrame = clock();
 
-	double scale = m_width / m_height;
+	double scale = static_cast<double>(m_width) / static_cast<double>(m_height);
 	vec3 southwest(-scale, -1.0, -1.0);
 	vec3 horizontal(scale * 2.0, 0.0, 0.0);
 	vec3 vertical(0.0, 2.0, 0.0);
