@@ -6,8 +6,7 @@
 class camera
 {
 public:
-    camera(size_t vw, size_t vh);
-    camera(size_t vw, size_t vh, vec3 origin);
+    camera(vec3 lookfrom, vec3 lookat, vec3 lookup, double vfov, size_t vw, size_t vh);
     ray get_ray(double x, double y) const;
     ray get_ray(size_t x, size_t y) const;
     ray get_ray(int x, int y) const;

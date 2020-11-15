@@ -66,13 +66,13 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	double startFrame = clock();
 
 	hitable_list world;
-	world.add(std::make_unique<sphere>(0.0, 0.0, -1.0, 0.5, std::make_unique<lambertian>(vec3(0.8, 0.3, 0.3))));
+	world.add(std::make_unique<sphere>(0.0, 0.0, -1.0, 0.5, std::make_unique<lambertian>(vec3(0.1, 0.2, 0.5))));
 	world.add(std::make_unique<sphere>(0.0, -100.5, -1.0, 100, std::make_unique<lambertian>(vec3(0.8, 0.8, 0.0))));
 	world.add(std::make_unique<sphere>(1.0, 0, -1.0, 0.5, std::make_unique<metal>(vec3(0.8, 0.6, 0.2), 0.3)));
 	world.add(std::make_unique<sphere>(-1.0, 0, -1.0, 0.5, std::make_unique<dielectric>(1.5)));
 	world.add(std::make_unique<sphere>(-1.0, 0, -1.0, -0.45, std::make_unique<dielectric>(1.5)));
 
-	camera cam(m_width, m_height);
+	camera cam(vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), 24.0, m_width, m_height);
 
 	tqdm bar;
 	// render the image pixel by pixel.
