@@ -9,6 +9,8 @@ add_executable(graphics
     hitable_list.cpp
     camera.cpp
     lambertian.cpp
+    metal.cpp
+    vec3.cpp
 )
 
 target_compile_features(graphics PUBLIC cxx_std_17)

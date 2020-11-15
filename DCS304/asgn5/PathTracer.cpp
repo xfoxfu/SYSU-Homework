@@ -9,6 +9,7 @@
 #include "tqdm.hpp"
 #include "material.hpp"
 #include "lambertian.hpp"
+#include "metal.hpp"
 
 constexpr size_t ANTIALIAS_ITER = 100;
 constexpr size_t DEPTH_CUTOFF = 50;
@@ -66,6 +67,8 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	hitable_list world;
 	world.add(std::make_unique<sphere>(0.0, 0.0, -1.0, 0.5, std::make_unique<lambertian>(vec3(0.8, 0.3, 0.3))));
 	world.add(std::make_unique<sphere>(0.0, -100.5, -1.0, 100, std::make_unique<lambertian>(vec3(0.8, 0.8, 0.0))));
+	world.add(std::make_unique<sphere>(1.0, 0, -1.0, 0.5, std::make_unique<metal>(vec3(0.8, 0.6, 0.2), 0.3)));
+	world.add(std::make_unique<sphere>(-1.0, 0, -1.0, 0.5, std::make_unique<metal>(vec3(0.8, 0.8, 0.8), 1.0)));
 
 	camera cam(m_width, m_height);
 

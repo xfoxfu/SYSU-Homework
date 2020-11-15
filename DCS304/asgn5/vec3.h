@@ -139,4 +139,6 @@ inline vec3 unit_vector(vec3 v) {
 	return v / v.length();
 }
 
+vec3 random_in_unit_sphere();
+
 #endif
