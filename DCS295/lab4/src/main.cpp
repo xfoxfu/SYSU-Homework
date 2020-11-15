@@ -59,15 +59,15 @@ int main(int argc, char **argv)
     std::cout << R;
   }
 
-  // Matrix Zn = run_timed("OMP Normal", [&L, &R]() { return product_omp(L, R); });
-  // if (output)
-  //   std::cout << Zn;
-  // Matrix Zs = run_timed("OMP Static", [&L, &R]() { return product_omp_static(L, R); });
-  // if (output)
-  //   std::cout << Zs;
-  // Matrix Zd = run_timed("OMP Dynamic", [&L, &R]() { return product_omp_dynamic(L, R); });
-  // if (output)
-  //   std::cout << Zd;
+  Matrix Zn = run_timed("OMP Normal", [&L, &R]() { return product_omp(L, R); });
+  if (output)
+    std::cout << Zn;
+  Matrix Zs = run_timed("OMP Static", [&L, &R]() { return product_omp_static(L, R); });
+  if (output)
+    std::cout << Zs;
+  Matrix Zd = run_timed("OMP Dynamic", [&L, &R]() { return product_omp_dynamic(L, R); });
+  if (output)
+    std::cout << Zd;
   Matrix Zp = run_timed("Parallel For", [&L, &R]() { return product_pfor(L, R); });
   if (output)
     std::cout << Zp;
@@ -79,21 +79,21 @@ int main(int argc, char **argv)
   {
     for (size_t j = 0; j < k; j++)
     {
-      // if (abs(W(i, j) - Zn(i, j)) > std::numeric_limits<double>().epsilon())
-      // {
-      //   std::cout << "different at " << i << ", " << j << " = "
-      //             << (W(i, j) - Zn(i, j)) << std::endl;
-      // }
-      // if (abs(W(i, j) - Zs(i, j)) > std::numeric_limits<double>().epsilon())
-      // {
-      //   std::cout << "different at " << i << ", " << j << " = "
-      //             << (W(i, j) - Zs(i, j)) << std::endl;
-      // }
-      // if (abs(W(i, j) - Zd(i, j)) > std::numeric_limits<double>().epsilon())
-      // {
-      //   std::cout << "different at " << i << ", " << j << " = "
-      //             << (W(i, j) - Zd(i, j)) << std::endl;
-      // }
+      if (abs(W(i, j) - Zn(i, j)) > std::numeric_limits<double>().epsilon())
+      {
+        std::cout << "different at " << i << ", " << j << " = "
+                  << (W(i, j) - Zn(i, j)) << std::endl;
+      }
+      if (abs(W(i, j) - Zs(i, j)) > std::numeric_limits<double>().epsilon())
+      {
+        std::cout << "different at " << i << ", " << j << " = "
+                  << (W(i, j) - Zs(i, j)) << std::endl;
+      }
+      if (abs(W(i, j) - Zd(i, j)) > std::numeric_limits<double>().epsilon())
+      {
+        std::cout << "different at " << i << ", " << j << " = "
+                  << (W(i, j) - Zd(i, j)) << std::endl;
+      }
       if (abs(W(i, j) - Zp(i, j)) > std::numeric_limits<double>().epsilon())
       {
         std::cout << "different at " << i << ", " << j << " = "
