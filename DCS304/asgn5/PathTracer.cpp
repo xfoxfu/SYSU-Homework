@@ -72,7 +72,9 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	world.add(std::make_unique<sphere>(-1.0, 0, -1.0, 0.5, std::make_unique<dielectric>(1.5)));
 	world.add(std::make_unique<sphere>(-1.0, 0, -1.0, -0.45, std::make_unique<dielectric>(1.5)));
 
-	camera cam(vec3(-2, 2, 1), vec3(0, 0, -1), vec3(0, 1, 0), 24.0, m_width, m_height);
+	vec3 lookfrom(3, 3, 2);
+	vec3 lookat(0, 0, -1);
+	camera cam(lookfrom, lookat, vec3(0, 1, 0), 20.0, m_width, m_height, 2.0, (lookfrom - lookat).length());
 
 	tqdm bar;
 	// render the image pixel by pixel.

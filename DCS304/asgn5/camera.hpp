@@ -6,7 +6,9 @@
 class camera
 {
 public:
-    camera(vec3 lookfrom, vec3 lookat, vec3 lookup, double vfov, size_t vw, size_t vh);
+    camera(vec3 lookfrom, vec3 lookat, vec3 lookup,
+           double vfov, size_t vw, size_t vh,
+           double aperture, double focus_dist);
     ray get_ray(double x, double y) const;
     ray get_ray(size_t x, size_t y) const;
     ray get_ray(int x, int y) const;
@@ -23,4 +25,8 @@ private:
     std::random_device _rd;
     std::mt19937 _gen;
     std::uniform_real_distribution<double> _dis;
+    double _lens_radius;
+    vec3 _u;
+    vec3 _v;
+    vec3 _w;
 };
