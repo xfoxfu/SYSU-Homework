@@ -1,10 +1,11 @@
 #include "PathTracer.h"
 
-#include "ray.h"
 #include <iostream>
 #include <time.h>
-#include "sphere.hpp"
+#include "camera.hpp"
 #include "hitable_list.hpp"
+#include "ray.hpp"
+#include "sphere.hpp"
 
 vec3 ray_color(const ray &r, const hitable &world)
 {
@@ -54,11 +55,7 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	world.add(std::make_unique<sphere>(0.0, 0.0, -1.0, 0.5));
 	world.add(std::make_unique<sphere>(0.0, -100.5, -1.0, 100));
 
-	double scale = static_cast<double>(m_width) / static_cast<double>(m_height);
-	vec3 southwest(-scale, -1.0, -1.0);
-	vec3 horizontal(scale * 2.0, 0.0, 0.0);
-	vec3 vertical(0.0, 2.0, 0.0);
-	vec3 origin(0.0, 0.0, 0.0);
+	camera cam(m_width, m_height);
 
 	// render the image pixel by pixel.
 	for (int y = m_height - 1; y >= 0; --y)
@@ -66,9 +63,7 @@ unsigned char * PathTracer::render(double & timeConsuming)
 		for (int x = 0; x < m_width; ++x)
 		{
 			// TODO: implement your ray tracing algorithm by yourself.
-			double u = static_cast<double>(x) / static_cast<double>(m_width);
-			double v = static_cast<double>(y) / static_cast<double>(m_height);
-			ray r(origin, southwest + u * horizontal + v * vertical);
+			ray r = cam.get_ray(x, y);
 			vec3 color = ray_color(r, world);
 
 			drawPixel(x, y, color);

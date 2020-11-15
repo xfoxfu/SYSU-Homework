@@ -7,6 +7,7 @@ add_executable(graphics
     ray.cpp
     sphere.cpp
     hitable_list.cpp
+    camera.cpp
 )
 
 target_compile_features(graphics PUBLIC cxx_std_17)
