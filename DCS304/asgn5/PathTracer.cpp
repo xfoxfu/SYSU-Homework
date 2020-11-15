@@ -7,6 +7,8 @@
 #include "ray.hpp"
 #include "sphere.hpp"
 
+constexpr size_t ANTIALIAS_ITER = 100;
+
 vec3 ray_color(const ray &r, const hitable &world)
 {
 	hit_record record;
@@ -63,8 +65,13 @@ unsigned char * PathTracer::render(double & timeConsuming)
 		for (int x = 0; x < m_width; ++x)
 		{
 			// TODO: implement your ray tracing algorithm by yourself.
-			ray r = cam.get_ray(x, y);
-			vec3 color = ray_color(r, world);
+			vec3 color = vec3(0.0, 0.0, 0.0);
+			for (size_t s = 0; s < ANTIALIAS_ITER; s++)
+			{
+				ray r = cam.get_ray_antialias(x, y);
+				color += ray_color(r, world);
+			}
+			color /= ANTIALIAS_ITER;
 
 			drawPixel(x, y, color);
 		}
