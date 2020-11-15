@@ -1,4 +1,4 @@
 {
-    "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-    "editor.formatOnSaveMode": "modifications"
+  "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
+  "editor.formatOnSaveMode": "modifications"
 }

@@ -1,7 +1,15 @@
 #include "PathTracer.h"
 
-#include <time.h>
+#include "ray.h"
 #include <iostream>
+#include <time.h>
+
+vec3 ray_color(const ray &r)
+{
+	vec3 unit_direction = unit_vector(r.direction());
+	float t = 0.5 * (unit_direction.y() + 1.0);
+	return (1.0 - t) * vec3(1.0, 1.0, 1.0) + t * vec3(0.5, 0.7, 1.0);
+}
 
 PathTracer::PathTracer()
 	: m_channel(4), m_width(800), m_height(600), m_image(nullptr) {}
@@ -35,17 +43,24 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	// record start time.
 	double startFrame = clock();
 
+	double scale = m_width / m_height;
+	vec3 southwest(-scale, -1.0, -1.0);
+	vec3 horizontal(scale * 2.0, 0.0, 0.0);
+	vec3 vertical(0.0, 2.0, 0.0);
+	vec3 origin(0.0, 0.0, 0.0);
+
 	// render the image pixel by pixel.
-	for (int row = m_height - 1; row >= 0; --row)
+	for (int y = m_height - 1; y >= 0; --y)
 	{
-		for (int col = 0; col < m_width; ++col)
+		for (int x = 0; x < m_width; ++x)
 		{
 			// TODO: implement your ray tracing algorithm by yourself.
-			vec3 color;
-			color[0] = static_cast<float>(col) / static_cast<float>(m_width);
-			color[1] = static_cast<float>(row) / static_cast<float>(m_height);
-			color[2] = 0.2;
-			drawPixel(col, row, color);
+			double u = static_cast<double>(x) / static_cast<double>(m_width);
+			double v = static_cast<double>(y) / static_cast<double>(m_height);
+			ray r(origin, southwest + u * horizontal + v * vertical);
+			vec3 color = ray_color(r);
+
+			drawPixel(x, y, color);
 		}
 	}
 
