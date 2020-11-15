@@ -10,8 +10,8 @@ int main(int argc, char *argv[])
 {
 	// initialization.
 	PathTracer tracer;
-	tracer.initialize(800, 600);
-	
+	tracer.initialize(200, 150);
+
 	// rendering.
 	double timeConsuming = 0.0f;
 	unsigned char *pixels = tracer.render(timeConsuming);

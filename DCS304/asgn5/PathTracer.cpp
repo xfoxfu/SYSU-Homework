@@ -6,15 +6,34 @@
 #include "hitable_list.hpp"
 #include "ray.hpp"
 #include "sphere.hpp"
+#include "tqdm.hpp"
 
 constexpr size_t ANTIALIAS_ITER = 100;
+constexpr size_t DEPTH_CUTOFF = 100;
 
-vec3 ray_color(const ray &r, const hitable &world)
+vec3 random_in_unit_sphere()
+{
+	vec3 p;
+	do
+	{
+		std::random_device rd;
+		std::mt19937 gen(rd());
+		std::uniform_real_distribution<double> dist(0.0, 1.0);
+		p = 2.0 * vec3(dist(gen), dist(gen), dist(gen)) - vec3(1.0, 1.0, 1.0);
+	} while (p.squared_length() >= 1.0);
+	return p;
+}
+
+vec3 ray_color(const ray &r, const hitable &world, size_t depth)
 {
 	hit_record record;
 	if (world.hit(r, 0.0, std::numeric_limits<double>().max(), record))
 	{
-		return 0.5 * (record.norm + vec3(1.0, 1.0, 1.0));
+		vec3 target = record.p + record.norm + random_in_unit_sphere();
+		if (depth > DEPTH_CUTOFF)
+			return vec3(0.0, 0.0, 0.0);
+		else
+			return 0.5 * ray_color(ray(record.p, target - record.p), world, depth + 1);
 	}
 	vec3 unit_direction = unit_vector(r.direction());
 	float t = 0.5 * (unit_direction.y() + 1.0);
@@ -59,23 +78,28 @@ unsigned char * PathTracer::render(double & timeConsuming)
 
 	camera cam(m_width, m_height);
 
+	tqdm bar;
 	// render the image pixel by pixel.
 	for (int y = m_height - 1; y >= 0; --y)
 	{
 		for (int x = 0; x < m_width; ++x)
 		{
+			// std::cout << x << " : " << y << std::endl;
 			// TODO: implement your ray tracing algorithm by yourself.
 			vec3 color = vec3(0.0, 0.0, 0.0);
 			for (size_t s = 0; s < ANTIALIAS_ITER; s++)
 			{
 				ray r = cam.get_ray_antialias(x, y);
-				color += ray_color(r, world);
+				color += ray_color(r, world, 0);
 			}
 			color /= ANTIALIAS_ITER;
+			color = vec3(std::sqrt(color.x()), std::sqrt(color.y()), std::sqrt(color.z()));
 
 			drawPixel(x, y, color);
+			bar.progress((m_height - y) * m_width + x, m_height * m_width);
 		}
 	}
+	bar.finish();
 
 	// record end time.
 	double endFrame = clock();
