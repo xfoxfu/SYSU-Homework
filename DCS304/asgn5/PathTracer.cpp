@@ -3,26 +3,15 @@
 #include "ray.h"
 #include <iostream>
 #include <time.h>
+#include "sphere.hpp"
+#include "hitable_list.hpp"
 
-double hit_sphere_point(const vec3 &ce, double ra, const ray &ry)
+vec3 ray_color(const ray &r, const hitable &world)
 {
-	vec3 oc = ry.origin() - ce;
-	double a = dot(ry.direction(), ry.direction());
-	double b = 2.0 * dot(oc, ry.direction());
-	double c = dot(oc, oc) - ra * ra;
-	float delta = b * b - 4 * a * c;
-	if (delta < 0)
-		return -1.0;					   // no solution
-	return (-b - sqrt(delta)) / (2.0 * a); // the nearer point
-}
-
-vec3 ray_color(const ray &r)
-{
-	float t = hit_sphere_point(vec3(0.0, 0.0, -1.0), 0.5, r);
-	if (t > 0.0)
+	hit_record record;
+	if (world.hit(r, 0.0, std::numeric_limits<double>().max(), record))
 	{
-		vec3 n = unit_vector(r.point_at_param(t) - vec3(0.0, 0.0, -1.0));
-		return 0.5 * (n + vec3(1.0, 1.0, 1.0));
+		return 0.5 * (record.norm + vec3(1.0, 1.0, 1.0));
 	}
 	vec3 unit_direction = unit_vector(r.direction());
 	float t = 0.5 * (unit_direction.y() + 1.0);
@@ -61,6 +50,10 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	// record start time.
 	double startFrame = clock();
 
+	hitable_list world;
+	world.add(std::make_unique<sphere>(0.0, 0.0, -1.0, 0.5));
+	world.add(std::make_unique<sphere>(0.0, -100.5, -1.0, 100));
+
 	double scale = static_cast<double>(m_width) / static_cast<double>(m_height);
 	vec3 southwest(-scale, -1.0, -1.0);
 	vec3 horizontal(scale * 2.0, 0.0, 0.0);
@@ -76,7 +69,7 @@ unsigned char * PathTracer::render(double & timeConsuming)
 			double u = static_cast<double>(x) / static_cast<double>(m_width);
 			double v = static_cast<double>(y) / static_cast<double>(m_height);
 			ray r(origin, southwest + u * horizontal + v * vertical);
-			vec3 color = ray_color(r);
+			vec3 color = ray_color(r, world);
 
 			drawPixel(x, y, color);
 		}

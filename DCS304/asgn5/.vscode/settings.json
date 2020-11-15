@@ -1,4 +1,5 @@
 {
   "C_Cpp.default.configurationProvider": "ms-vscode.cmake-tools",
-  "editor.formatOnSaveMode": "modifications"
+  "editor.formatOnSaveMode": "modifications",
+  "C_Cpp.errorSquiggles": "Enabled"
 }

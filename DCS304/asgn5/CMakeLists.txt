@@ -5,6 +5,8 @@ add_executable(graphics
     main.cpp
     PathTracer.cpp
     ray.cpp
+    sphere.cpp
+    hitable_list.cpp
 )
 
 target_compile_features(graphics PUBLIC cxx_std_17)
