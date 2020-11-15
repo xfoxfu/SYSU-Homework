@@ -11,6 +11,7 @@ add_executable(graphics
     lambertian.cpp
     metal.cpp
     vec3.cpp
+    dielectric.cpp
 )
 
 target_compile_features(graphics PUBLIC cxx_std_17)

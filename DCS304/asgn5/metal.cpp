@@ -1,11 +1,6 @@
 #include "metal.hpp"
 #include <random>
 
-vec3 reflect(const vec3 &v, const vec3 &n)
-{
-    return v - 2.0 * dot(v, n) * n;
-}
-
 metal::metal(const vec3 &albedo, double f)
 {
     _albedo = albedo;
