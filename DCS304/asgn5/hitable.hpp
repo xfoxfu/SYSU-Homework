@@ -3,11 +3,15 @@
 #include "vec3.h"
 #include "ray.hpp"
 
+class material;
+
 struct hit_record
 {
     double t;
     vec3 p;
     vec3 norm;
+    material *mat;
+    hit_record() : mat(nullptr) {}
 };
 
 class hitable

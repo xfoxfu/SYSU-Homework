@@ -8,6 +8,7 @@ add_executable(graphics
     sphere.cpp
     hitable_list.cpp
     camera.cpp
+    lambertian.cpp
 )
 
 target_compile_features(graphics PUBLIC cxx_std_17)
