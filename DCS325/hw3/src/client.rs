@@ -19,7 +19,10 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+use std::net::ToSocketAddrs;
+
 use crate::pubsub_capnp::{publisher, subscriber};
+use capnp_rpc::pry;
 use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
 
 use capnp::capability::Promise;
@@ -28,10 +31,10 @@ use futures::AsyncReadExt;
 struct SubscriberImpl;
 
 impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
-    fn push_message(
+    fn publish(
         &mut self,
-        params: subscriber::PushMessageParams<::capnp::text::Owned>,
-        _results: subscriber::PushMessageResults<::capnp::text::Owned>,
+        params: subscriber::PublishParams<::capnp::text::Owned>,
+        _results: subscriber::PublishResults<::capnp::text::Owned>,
     ) -> Promise<(), ::capnp::Error> {
         println!(
             "message from publisher: {}",
@@ -41,15 +44,9 @@ impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
     }
 }
 
-pub async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    use std::net::ToSocketAddrs;
-    let args: Vec<String> = ::std::env::args().collect();
-    if args.len() != 3 {
-        println!("usage: {} client HOST:PORT", args[0]);
-        return Ok(());
-    }
-
-    let addr = args[2]
+pub async fn main(opt: super::options::Client) -> Result<(), Box<dyn std::error::Error>> {
+    let addr = opt
+        .addr
         .to_socket_addrs()
         .unwrap()
         .next()

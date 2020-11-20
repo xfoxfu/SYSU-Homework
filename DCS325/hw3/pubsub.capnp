@@ -1,4 +1,4 @@
-@0xa074fbab61132cbd;
+@0x81abe41b8006d644;
 
 interface Subscription {}
 
@@ -11,7 +11,7 @@ interface Publisher(T) {
 }
 
 interface Subscriber(T) {
-    pushMessage @0 (message: T) -> ();
+    publish @0 (message: T) -> ();
     # Sends a message from a publisher to the subscriber. To help with flow control, the subscriber should not
     # return from this method until it is ready to process the next message.
 }

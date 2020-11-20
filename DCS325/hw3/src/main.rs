@@ -19,27 +19,24 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[macro_use]
-extern crate capnp_rpc;
-
+#[allow(clippy::all)]
 pub mod pubsub_capnp {
     include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));
 }
 
-pub mod client;
-pub mod server;
+mod client;
+mod options;
+mod server;
+
+use clap::Clap;
+use options::{Opts, SubCommand};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let args: Vec<String> = ::std::env::args().collect();
-    if args.len() >= 2 {
-        match &args[1][..] {
-            "client" => return client::main().await,
-            "server" => return server::main().await,
-            _ => (),
-        }
-    }
+    let opts = Opts::parse();
 
-    println!("usage: {} [client | server] ADDRESS", args[0]);
-    Ok(())
+    match opts.subcmd {
+        SubCommand::Client(c) => client::main(c).await,
+        SubCommand::Server(s) => server::main(s).await,
+    }
 }
