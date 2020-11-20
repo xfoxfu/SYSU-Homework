@@ -30,13 +30,17 @@ use futures::AsyncReadExt;
 
 struct SubscriberImpl;
 
-impl subscriber::Server<::capnp::text::Owned> for SubscriberImpl {
+impl subscriber::Server<capnp::text::Owned> for SubscriberImpl {
     fn publish(
         &mut self,
-        params: subscriber::PublishParams<::capnp::text::Owned>,
-        _results: subscriber::PublishResults<::capnp::text::Owned>,
-    ) -> Promise<(), ::capnp::Error> {
-        info!("received: {}", pry!(pry!(params.get()).get_message()));
+        params: subscriber::PublishParams<capnp::text::Owned>,
+        _results: subscriber::PublishResults<capnp::text::Owned>,
+    ) -> Promise<(), capnp::Error> {
+        info!(
+            "received: {:?} @ {}",
+            pry!(pry!(pry!(params.get()).get_message()).get_content()),
+            pry!(pry!(params.get()).get_message()).get_send_ts(),
+        );
         Promise::ok(())
     }
 }
@@ -62,7 +66,7 @@ pub async fn main(opt: super::options::Client) -> Result<(), Box<dyn std::error:
                 Default::default(),
             ));
             let mut rpc_system = RpcSystem::new(rpc_network, None);
-            let publisher: publisher::Client<::capnp::text::Owned> =
+            let publisher: publisher::Client<capnp::text::Owned> =
                 rpc_system.bootstrap(rpc_twoparty_capnp::Side::Server);
             let sub = capnp_rpc::new_client(SubscriberImpl);
 

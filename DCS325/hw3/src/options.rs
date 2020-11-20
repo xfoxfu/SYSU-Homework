@@ -30,4 +30,7 @@ pub struct Server {
     pub concurrency: Option<u8>,
     /// target address
     pub addr: String,
+    /// message duration
+    #[clap(short, long)]
+    pub duration: Option<u64>,
 }

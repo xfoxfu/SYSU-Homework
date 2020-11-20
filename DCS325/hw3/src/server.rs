@@ -19,21 +19,18 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-use std::collections::HashMap;
-use std::rc::Rc;
-use std::{cell::RefCell, net::ToSocketAddrs};
-
 use crate::pubsub_capnp::{publisher, subscriber, subscription};
+use capnp::capability::Promise;
 use capnp_rpc::pry;
 use capnp_rpc::{rpc_twoparty_capnp, twoparty, RpcSystem};
-
-use capnp::capability::Promise;
-
-use futures::{AsyncReadExt, FutureExt, StreamExt};
+use futures::{lock::Mutex, AsyncReadExt, FutureExt, StreamExt, TryFuture};
+use std::collections::HashMap;
+use std::collections::VecDeque;
+use std::{cell::RefCell, net::ToSocketAddrs};
+use std::{rc::Rc, time::SystemTime};
 
 struct SubscriberHandle {
-    client: subscriber::Client<::capnp::text::Owned>,
-    requests_in_flight: i32,
+    client: subscriber::Client<capnp::text::Owned>,
 }
 
 struct SubscriberMap {
@@ -74,9 +71,18 @@ struct PublisherImpl {
     concurrency_limit: Option<u8>,
 }
 
+#[allow(clippy::type_complexity)]
 impl PublisherImpl {
-    pub fn new(concurrency_limit: Option<u8>) -> (PublisherImpl, Rc<RefCell<SubscriberMap>>) {
+    pub fn new(
+        concurrency_limit: Option<u8>,
+    ) -> (
+        PublisherImpl,
+        Rc<RefCell<SubscriberMap>>,
+        Rc<Mutex<VecDeque<(String, SystemTime)>>>,
+    ) {
         let subscribers = Rc::new(RefCell::new(SubscriberMap::new()));
+        let messages = Rc::new(Mutex::new(VecDeque::new()));
+
         (
             PublisherImpl {
                 next_id: 0,
@@ -84,16 +90,17 @@ impl PublisherImpl {
                 concurrency_limit,
             },
             subscribers,
+            messages,
         )
     }
 }
 
-impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
+impl publisher::Server<capnp::text::Owned> for PublisherImpl {
     fn subscribe(
         &mut self,
-        params: publisher::SubscribeParams<::capnp::text::Owned>,
-        mut results: publisher::SubscribeResults<::capnp::text::Owned>,
-    ) -> Promise<(), ::capnp::Error> {
+        params: publisher::SubscribeParams<capnp::text::Owned>,
+        mut results: publisher::SubscribeResults<capnp::text::Owned>,
+    ) -> Promise<(), capnp::Error> {
         info!("new subscriber connected");
         if let Some(l) = self.concurrency_limit {
             let c = self.subscribers.borrow_mut().subscribers.len();
@@ -108,7 +115,6 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
             self.next_id,
             SubscriberHandle {
                 client: pry!(pry!(params.get()).get_subscriber()),
-                requests_in_flight: 0,
             },
         );
 
@@ -135,13 +141,14 @@ pub async fn main(opt: super::options::Server) -> Result<(), Box<dyn std::error:
     tokio::task::LocalSet::new()
         .run_until(async move {
             let listener = tokio::net::TcpListener::bind(&addr).await?;
-            let (publisher_impl, subscribers) = PublisherImpl::new(opt.concurrency);
+            let (publisher_impl, subscribers, messages) = PublisherImpl::new(opt.concurrency);
             let publisher: publisher::Client<_> = capnp_rpc::new_client(publisher_impl);
+            info!("server listening on {:?}", addr);
 
             let handle_incoming = async move {
                 loop {
-                    let (stream, _) = listener.accept().await?;
-                    stream.set_nodelay(true)?;
+                    let (stream, _) = listener.accept().await.unwrap();
+                    stream.set_nodelay(true).unwrap();
                     let (reader, writer) =
                         tokio_util::compat::Tokio02AsyncReadCompatExt::compat(stream).split();
                     let network = twoparty::VatNetwork::new(
@@ -157,48 +164,80 @@ pub async fn main(opt: super::options::Server) -> Result<(), Box<dyn std::error:
                 }
             };
 
-            // Trigger sending approximately once per second.
-            let (tx, mut rx) = futures::channel::mpsc::unbounded::<()>();
-            std::thread::spawn(move || {
-                while let Ok(()) = tx.unbounded_send(()) {
-                    std::thread::sleep(std::time::Duration::from_millis(1000));
+            // Create messages once a second
+            let messages_ref = messages.clone();
+            let generate_messages = async move {
+                loop {
+                    let s = format!("system time is: {:?}", SystemTime::now());
+                    info!("publish: {}", s);
+                    messages_ref.lock().await.push_back((s, SystemTime::now()));
+                    tokio::time::sleep(std::time::Duration::from_secs(1)).await;
                 }
-            });
-
-            let send_to_subscribers = async move {
-                while let Some(()) = rx.next().await {
-                    let subscribers1 = subscribers.clone();
-                    let subs = &mut subscribers.borrow_mut().subscribers;
-                    for (&idx, mut subscriber) in subs.iter_mut() {
-                        if subscriber.requests_in_flight < 5 {
-                            subscriber.requests_in_flight += 1;
-                            let mut request = subscriber.client.publish_request();
-                            request.get().set_message(
-                            &format!("system time is: {:?}", ::std::time::SystemTime::now())[..])?;
-                            let subscribers2 = subscribers1.clone();
-                            tokio::task::spawn_local(Box::pin(request.send().promise.map(
-                                move |r| match r {
-                                    Ok(_) => {
-                                        if let Some(ref mut s) =
-                                            subscribers2.borrow_mut().subscribers.get_mut(&idx)
-                                        {
-                                            s.requests_in_flight -= 1;
-                                        }
-                                    }
-                                    Err(e) => {
-                                        error!("Got error: {:?}. Dropping subscriber.", e);
-                                        subscribers2.borrow_mut().subscribers.remove(&idx);
-                                    }
-                                },
-                            )));
-                        }
-                    }
-                }
-                Ok::<(), Box<dyn std::error::Error>>(())
             };
 
-            let _: ((), ()) =
-                futures::future::try_join(handle_incoming, send_to_subscribers).await?;
+            // Cleanup unused messages once two seconds
+            let messages_ref = messages.clone();
+            let clean_up_messages = async move {
+                if let Some(d) = opt.duration {
+                    loop {
+                        let mut cleans = Vec::new();
+                        for (i, (_, t)) in messages_ref.lock().await.iter().enumerate() {
+                            let elim = t.elapsed().unwrap().as_secs() > d;
+                            debug!(
+                                "check: {} {} => {}",
+                                t.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs(),
+                                t.elapsed().unwrap().as_secs(),
+                                elim
+                            );
+                            if elim {
+                                cleans.push(i);
+                            }
+                        }
+                        for i in cleans {
+                            messages_ref.lock().await.remove(i);
+                        }
+                        tokio::time::sleep(std::time::Duration::from_secs(2)).await;
+                    }
+                }
+            };
+
+            let messages_ref = messages.clone();
+            let send_to_subscribers = async move {
+                loop {
+                    let subscribers_ref = subscribers.clone();
+                    let subs = &mut subscribers_ref.borrow_mut().subscribers;
+                    if !subs.is_empty() {
+                        if let Some((s, ts)) = messages_ref.lock().await.pop_front() {
+                            for (&idx, subscriber) in subs.iter_mut() {
+                                let mut request = subscriber.client.publish_request();
+                                let mut msg = request.get().init_message();
+                                msg.set_send_ts(
+                                    ts.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs(),
+                                );
+                                msg.set_content(s.as_str()).unwrap();
+                                let subscribers_ref2 = subscribers.clone();
+                                tokio::task::spawn_local(Box::pin(request.send().promise.map(
+                                    move |r| {
+                                        if let Err(e) = r {
+                                            error!("Got error: {:?}. Dropping subscriber.", e);
+                                            subscribers_ref2.borrow_mut().subscribers.remove(&idx);
+                                        }
+                                    },
+                                )));
+                            }
+                        }
+                    }
+                    tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+                }
+            };
+
+            let _ = futures::future::join4(
+                handle_incoming,
+                send_to_subscribers,
+                generate_messages,
+                clean_up_messages,
+            )
+            .await;
             Ok(())
         })
         .await
