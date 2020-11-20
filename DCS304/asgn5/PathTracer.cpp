@@ -15,6 +15,49 @@
 constexpr size_t ANTIALIAS_ITER = 100;
 constexpr size_t DEPTH_CUTOFF = 50;
 
+hitable_list random_scene()
+{
+	std::random_device rd;
+	std::mt19937 gen(rd());
+	std::uniform_real_distribution<double> dist(0.0, 1.0);
+
+	hitable_list world;
+	world.add(std::make_unique<sphere>(0, -1000, 0, 1000, std::make_unique<lambertian>(vec3(0.5, 0.5, 0.5))));
+	for (int a = -11; a < 11; a++)
+	{
+		for (int b = -11; b < 11; b++)
+		{
+			double material_sel = dist(gen);
+			vec3 center(a + 0.9 * dist(gen), 0.2, b + 0.9 * dist(gen));
+			if ((center - vec3(4, 0.2, 0)).length() > 0.9)
+			{
+				if (material_sel < 0.8)
+					world.add(
+						std::make_unique<sphere>(
+							center, 0.2,
+							std::make_unique<lambertian>(
+								vec3(dist(gen) * dist(gen), dist(gen) * dist(gen), dist(gen) * dist(gen)))));
+				else if (material_sel < 0.95)
+					world.add(std::make_unique<sphere>(
+						center, 0.2,
+						std::make_unique<metal>(
+							vec3(0.5 * (1 + dist(gen)), 0.5 * (1 + dist(gen)), 0.5 * (1 + dist(gen))),
+							0.5 * dist(gen))));
+				else
+					world.add(std::make_unique<sphere>(
+						center, 0.2,
+						std::make_unique<dielectric>(1.5)));
+			}
+		}
+	}
+
+	world.add(std::make_unique<sphere>(vec3(0, 1, 0), 1.0, std::make_unique<dielectric>(1.5)));
+	world.add(std::make_unique<sphere>(vec3(-4, 1, 0), 1.0, std::make_unique<lambertian>(vec3(0.4, 0.2, 0.1))));
+	world.add(std::make_unique<sphere>(vec3(4, 1, 0), 1.0, std::make_unique<metal>(vec3(0.7, 0.6, 0.5), 0.0)));
+
+	return world;
+}
+
 vec3 ray_color(const ray &r, const hitable &world, size_t depth)
 {
 	hit_record record;
@@ -54,7 +97,7 @@ void PathTracer::initialize(int width, int height)
 	m_image = new unsigned char[width * height * m_channel];
 }
 
-unsigned char * PathTracer::render(double & timeConsuming)
+unsigned char *PathTracer::render(double &timeConsuming)
 {
 	if (m_image == nullptr)
 	{
@@ -65,16 +108,14 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	// record start time.
 	double startFrame = clock();
 
-	hitable_list world;
-	world.add(std::make_unique<sphere>(0.0, 0.0, -1.0, 0.5, std::make_unique<lambertian>(vec3(0.1, 0.2, 0.5))));
-	world.add(std::make_unique<sphere>(0.0, -100.5, -1.0, 100, std::make_unique<lambertian>(vec3(0.8, 0.8, 0.0))));
-	world.add(std::make_unique<sphere>(1.0, 0, -1.0, 0.5, std::make_unique<metal>(vec3(0.8, 0.6, 0.2), 0.3)));
-	world.add(std::make_unique<sphere>(-1.0, 0, -1.0, 0.5, std::make_unique<dielectric>(1.5)));
-	world.add(std::make_unique<sphere>(-1.0, 0, -1.0, -0.45, std::make_unique<dielectric>(1.5)));
+	hitable_list world = random_scene();
 
-	vec3 lookfrom(3, 3, 2);
-	vec3 lookat(0, 0, -1);
-	camera cam(lookfrom, lookat, vec3(0, 1, 0), 20.0, m_width, m_height, 2.0, (lookfrom - lookat).length());
+	vec3 lookfrom(13, 2, 3);
+	vec3 lookat(0, 0, 0);
+	vec3 vup(0, 1, 0);
+	auto dist_to_focus = 10.0;
+	auto aperture = 0.1;
+	camera cam(lookfrom, lookat, vup, 20, m_width, m_height, aperture, dist_to_focus);
 
 	tqdm bar;
 	// render the image pixel by pixel.
@@ -82,8 +123,6 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	{
 		for (int x = 0; x < m_width; ++x)
 		{
-			// std::cout << x << " : " << y << std::endl;
-			// TODO: implement your ray tracing algorithm by yourself.
 			vec3 color = vec3(0.0, 0.0, 0.0);
 			for (size_t s = 0; s < ANTIALIAS_ITER; s++)
 			{
@@ -108,9 +147,9 @@ unsigned char * PathTracer::render(double & timeConsuming)
 	return m_image;
 }
 
-void PathTracer::drawPixel(unsigned int x, unsigned int y, const vec3 & color)
+void PathTracer::drawPixel(unsigned int x, unsigned int y, const vec3 &color)
 {
-	// Check out 
+	// Check out
 	if (x < 0 || x >= m_width || y < 0 || y >= m_height)
 		return;
 	// x is column's index, y is row's index.
