@@ -11,6 +11,8 @@ capnp = "0.13.6"
 capnp-rpc = "0.13.1"
 clap = "3.0.0-beta.1"
 futures = "0.3.8"
+log = "0.4.11"
+pretty_env_logger = "0.4.0"
 tokio = { version = "0.3.4", features = ["net", "rt", "macros"]}
 tokio-util = { version = "0.5.0", features = ["compat"] }
 

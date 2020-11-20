@@ -61,7 +61,7 @@ impl SubscriptionImpl {
 
 impl Drop for SubscriptionImpl {
     fn drop(&mut self) {
-        println!("subscription dropped");
+        info!("subscriber {} dropped", self.id);
         self.subscribers.borrow_mut().subscribers.remove(&self.id);
     }
 }
@@ -94,9 +94,11 @@ impl publisher::Server<::capnp::text::Owned> for PublisherImpl {
         params: publisher::SubscribeParams<::capnp::text::Owned>,
         mut results: publisher::SubscribeResults<::capnp::text::Owned>,
     ) -> Promise<(), ::capnp::Error> {
-        println!("subscribe");
+        info!("new subscriber connected");
         if let Some(l) = self.concurrency_limit {
-            if self.subscribers.borrow_mut().subscribers.len() >= l as usize {
+            let c = self.subscribers.borrow_mut().subscribers.len();
+            if c >= l as usize {
+                error!("subscriber count {} exceeded {}", c + 1, l);
                 return Promise::err(capnp::Error::disconnected(
                     "exceeded concurrent subscriber limit".to_string(),
                 ));
@@ -184,7 +186,7 @@ pub async fn main(opt: super::options::Server) -> Result<(), Box<dyn std::error:
                                         }
                                     }
                                     Err(e) => {
-                                        println!("Got error: {:?}. Dropping subscriber.", e);
+                                        error!("Got error: {:?}. Dropping subscriber.", e);
                                         subscribers2.borrow_mut().subscribers.remove(&idx);
                                     }
                                 },

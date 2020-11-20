@@ -19,6 +19,9 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
+#[macro_use]
+extern crate log;
+
 #[allow(clippy::all)]
 pub mod pubsub_capnp {
     include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));
@@ -33,6 +36,10 @@ use options::{Opts, SubCommand};
 
 #[tokio::main(flavor = "current_thread")]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    if let Err(std::env::VarError::NotPresent) = std::env::var("RUST_LOG") {
+        std::env::set_var("RUST_LOG", "pubsub=info")
+    }
+    pretty_env_logger::init();
     let opts = Opts::parse();
 
     match opts.subcmd {
