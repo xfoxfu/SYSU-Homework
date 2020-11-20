@@ -1,0 +1,21 @@
+[package]
+name = "pubsub"
+version = "0.1.0"
+authors = ["David Renshaw <david@sandstorm.io>"]
+edition = "2018"
+
+build = "build.rs"
+
+[[bin]]
+name = "pubsub"
+path = "main.rs"
+
+[dependencies]
+capnp = "0.13.6"
+capnp-rpc = "0.13.1"
+futures = "0.3.8"
+tokio = { version = "0.3.4", features = ["net", "rt", "macros"]}
+tokio-util = { version = "0.5.0", features = ["compat"] }
+
+[build-dependencies]
+capnpc = "0.13.1"
