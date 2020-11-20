@@ -19,10 +19,11 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#[macro_use] extern crate capnp_rpc;
+#[macro_use]
+extern crate capnp_rpc;
 
 pub mod pubsub_capnp {
-  include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));
+    include!(concat!(env!("OUT_DIR"), "/pubsub_capnp.rs"));
 }
 
 pub mod client;
@@ -35,7 +36,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         match &args[1][..] {
             "client" => return client::main().await,
             "server" => return server::main().await,
-            _ => ()
+            _ => (),
         }
     }
 

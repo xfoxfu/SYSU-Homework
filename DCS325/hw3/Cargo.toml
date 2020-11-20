@@ -6,10 +6,6 @@ edition = "2018"
 
 build = "build.rs"
 
-[[bin]]
-name = "pubsub"
-path = "main.rs"
-
 [dependencies]
 capnp = "0.13.6"
 capnp-rpc = "0.13.1"
