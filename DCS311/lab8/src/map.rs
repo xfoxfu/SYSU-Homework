@@ -77,16 +77,17 @@ impl TryFrom<char> for Cell {
 
 pub struct Map {
     inner: DMatrix<Cell>,
-    current: Point2<usize>,
+    current: (usize, usize),
+    target: (usize, usize),
 }
 
 impl Map {
-    pub fn current(&self) -> &Point2<usize> {
-        &self.current
+    pub fn current(&self) -> (usize, usize) {
+        self.current
     }
 
-    pub fn current_mut(&mut self) -> &mut Point2<usize> {
-        &mut self.current
+    pub fn target(&self) -> (usize, usize) {
+        self.target
     }
 
     pub fn get(&self, i: usize, j: usize) -> &Cell {
@@ -99,7 +100,7 @@ impl Map {
 
     pub fn explore(&mut self, i: usize, j: usize) {
         *self.inner.get_mut((i, j)).unwrap() = Cell::Explored;
-        self.current = nalgebra::Point2::new(i, j);
+        self.current = (i, j);
     }
 
     pub fn adjacent(&mut self, i: usize, j: usize) -> Vec<(usize, usize)> {
@@ -134,21 +135,32 @@ impl FromStr for Map {
             .chars()
             .count();
         let mut inner = unsafe { DMatrix::<Cell>::new_uninitialized(m, n) };
-        let mut current = Point2::origin();
+        let mut current = (0, 0);
+        let mut target = (0, 0);
         for (i, l) in s.lines().enumerate() {
             for (j, c) in l.trim().chars().enumerate() {
                 inner[(i, j)] = c.try_into()?;
                 if inner[(i, j)] == Cell::Start {
-                    if current[0] == 0 && current[1] == 0 {
-                        current = Point2::new(i, j);
-                        inner[(i, j)] = Cell::Road;
+                    if current.0 == 0 && current.1 == 0 {
+                        current = (i, j);
+                    } else {
+                        return Err(ParseError::TooMuchStart(i, j));
+                    }
+                }
+                if inner[(i, j)] == Cell::End {
+                    if target.0 == 0 && target.1 == 0 {
+                        target = (i, j);
                     } else {
                         return Err(ParseError::TooMuchStart(i, j));
                     }
                 }
             }
         }
-        Ok(Self { inner, current })
+        Ok(Self {
+            inner,
+            current,
+            target,
+        })
     }
 }
 

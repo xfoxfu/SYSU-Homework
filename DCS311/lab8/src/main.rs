@@ -7,9 +7,13 @@ use embedded_graphics_simulator::{
 use std::{io::Read, thread};
 use std::{str::FromStr, time::Duration};
 
+// mod astar;
 mod map;
-use map::{Cell, Map};
 mod ucs;
+
+// use astar::AStarSearch;
+use map::{Cell, Map};
+use ucs::UniformCostSearch;
 
 pub(crate) const fn px(pt: u32) -> u32 {
     pt * 16
@@ -27,13 +31,18 @@ fn main() -> Result<()> {
     let mut map = Map::from_str(&map)?;
 
     map.draw(&mut display)?;
-    let mut search = ucs::UniformCostSearch::new(&mut map);
+    let mut search = UniformCostSearch::new(&mut map);
+    let mut found = false;
 
     'running: loop {
         window.update(&display);
 
-        search.iterate().unwrap();
-        search.draw(&mut display)?;
+        if !found {
+            if let Some(route) = search.iterate()? {
+                found = true;
+            }
+            search.draw(&mut display)?;
+        }
         for event in window.events() {
             #[allow(clippy::single_match)]
             match event {
@@ -41,7 +50,7 @@ fn main() -> Result<()> {
                 _ => {}
             }
         }
-        thread::sleep(Duration::from_millis(25));
+        // thread::sleep(Duration::from_millis(1));
     }
 
     Ok(())

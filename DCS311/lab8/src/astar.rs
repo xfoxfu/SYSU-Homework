@@ -4,16 +4,16 @@ use priority_queue::PriorityQueue;
 use std::cmp::Reverse;
 use std::collections::HashMap;
 
-pub struct UniformCostSearch<'a> {
+pub struct AStarSearch<'a> {
     map: &'a mut Map,
     frontier: PriorityQueue<(usize, usize), Reverse<usize>>,
     parent: HashMap<(usize, usize), (usize, usize)>,
 }
 
-impl<'a> UniformCostSearch<'a> {
+impl<'a> AStarSearch<'a> {
     pub fn new(map: &'a mut Map) -> Self {
         let mut frontier = PriorityQueue::new();
-        frontier.push(map.current(), Reverse(0));
+        frontier.push(map.current().clone(), Reverse(0));
         let parent = HashMap::new();
 
         Self {
@@ -30,14 +30,14 @@ pub enum SearchError {
     Failure,
 }
 
-impl<'a> UniformCostSearch<'a> {
-    pub fn iterate(&mut self) -> Result<Option<Vec<(usize, usize)>>, SearchError> {
+impl<'a> AStarSearch<'a> {
+    pub fn iterate(&mut self) -> Result<Option<()>, SearchError> {
         let ((u, v), Reverse(pri)) = self.frontier.pop().ok_or(SearchError::Failure)?;
-        let cell = *self.map.get(u, v);
-        self.map.explore(u, v);
-        if cell == Cell::End {
-            return Ok(Some(self.get_route()));
+        let cell = self.map.get_mut(u, v);
+        if *cell == Cell::End {
+            return Ok(Some(()));
         }
+        self.map.explore(u, v);
         for (i, j) in self.map.adjacent(u, v).into_iter() {
             if !self.map.get(i, j).reachable() {
                 continue;
@@ -55,33 +55,22 @@ impl<'a> UniformCostSearch<'a> {
 
         Ok(None)
     }
-
-    pub fn get_route(&self) -> Vec<(usize, usize)> {
-        let mut r = Vec::new();
-        let (mut i, mut j) = self.map.current();
-        r.push((i, j));
-        while let Some((u, v)) = self.parent.get(&(i, j)).copied() {
-            i = u;
-            j = v;
-            r.push((i, j));
-        }
-        r
-    }
 }
 
-impl<'a> UniformCostSearch<'a> {
+impl<'a> AStarSearch<'a> {
     pub fn draw<D: DrawTarget<Rgb888>>(&self, display: &mut D) -> Result<(), D::Error> {
         use embedded_graphics::prelude::*;
 
         self.map.draw(display)?;
 
-        for (k, (i, j)) in self.get_route().into_iter().enumerate() {
-            self.map.draw_cell(
-                display,
-                i as i32,
-                j as i32,
-                if k == 0 { Rgb888::CYAN } else { Rgb888::BLUE },
-            )?;
+        let (mut i, mut j) = *self.map.current();
+        self.map
+            .draw_cell(display, i as i32, j as i32, Rgb888::CYAN)?;
+        while let Some((u, v)) = self.parent.get(&(i, j)).copied() {
+            i = u;
+            j = v;
+            self.map
+                .draw_cell(display, i as i32, j as i32, Rgb888::BLUE)?;
         }
 
         Ok(())
