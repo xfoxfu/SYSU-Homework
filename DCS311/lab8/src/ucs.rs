@@ -1,89 +1,11 @@
-use super::{Cell, Map};
-use embedded_graphics::{pixelcolor::Rgb888, DrawTarget};
-use priority_queue::PriorityQueue;
-use std::cmp::Reverse;
-use std::collections::HashMap;
+use super::{CostFunction, GenericSearch};
 
-pub struct UniformCostSearch<'a> {
-    map: &'a mut Map,
-    frontier: PriorityQueue<(usize, usize), Reverse<usize>>,
-    parent: HashMap<(usize, usize), (usize, usize)>,
-}
+pub struct UniformCost;
 
-impl<'a> UniformCostSearch<'a> {
-    pub fn new(map: &'a mut Map) -> Self {
-        let mut frontier = PriorityQueue::new();
-        frontier.push(map.current(), Reverse(0));
-        let parent = HashMap::new();
-
-        Self {
-            map,
-            frontier,
-            parent,
-        }
+impl CostFunction for UniformCost {
+    fn h(_cur: (usize, usize), _target: (usize, usize)) -> usize {
+        0
     }
 }
 
-#[derive(thiserror::Error, Debug)]
-pub enum SearchError {
-    #[error("failed to reach target")]
-    Failure,
-}
-
-impl<'a> UniformCostSearch<'a> {
-    pub fn iterate(&mut self) -> Result<Option<Vec<(usize, usize)>>, SearchError> {
-        let ((u, v), Reverse(pri)) = self.frontier.pop().ok_or(SearchError::Failure)?;
-        let cell = *self.map.get(u, v);
-        self.map.explore(u, v);
-        if cell == Cell::End {
-            return Ok(Some(self.get_route()));
-        }
-        for (i, j) in self.map.adjacent(u, v).into_iter() {
-            if !self.map.get(i, j).reachable() {
-                continue;
-            }
-            if let Some(Reverse(npri)) = self.frontier.get_priority(&(i, j)).copied() {
-                if pri + 1 < npri {
-                    self.frontier.change_priority(&(i, j), Reverse(pri + 1));
-                    *self.parent.get_mut(&(i, j)).unwrap() = (u, v);
-                }
-            } else {
-                self.frontier.push((i, j), Reverse(pri + 1));
-                self.parent.insert((i, j), (u, v));
-            }
-        }
-
-        Ok(None)
-    }
-
-    pub fn get_route(&self) -> Vec<(usize, usize)> {
-        let mut r = Vec::new();
-        let (mut i, mut j) = self.map.current();
-        r.push((i, j));
-        while let Some((u, v)) = self.parent.get(&(i, j)).copied() {
-            i = u;
-            j = v;
-            r.push((i, j));
-        }
-        r
-    }
-}
-
-impl<'a> UniformCostSearch<'a> {
-    pub fn draw<D: DrawTarget<Rgb888>>(&self, display: &mut D) -> Result<(), D::Error> {
-        use embedded_graphics::prelude::*;
-
-        self.map.draw(display)?;
-
-        for (k, (i, j)) in self.get_route().into_iter().enumerate() {
-            self.map.draw_cell(
-                display,
-                i as i32,
-                j as i32,
-                if k == 0 { Rgb888::CYAN } else { Rgb888::BLUE },
-            )?;
-        }
-
-        Ok(())
-    }
-}
+pub type UniformCostSearch<'a> = GenericSearch<'a, UniformCost>;

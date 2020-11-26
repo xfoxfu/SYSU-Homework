@@ -1,9 +1,9 @@
 use super::px;
-use embedded_graphics::pixelcolor::Rgb888;
-use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
-use embedded_graphics::style::{PrimitiveStyle, PrimitiveStyleBuilder};
-use nalgebra::{DMatrix, Point2};
+use embedded_graphics::style::PrimitiveStyleBuilder;
+use embedded_graphics::{fonts::Font8x16, prelude::*, style::TextStyleBuilder};
+use embedded_graphics::{fonts::Text, pixelcolor::Rgb888};
+use nalgebra::DMatrix;
 use std::convert::{TryFrom, TryInto};
 use std::str::FromStr;
 
@@ -94,10 +94,6 @@ impl Map {
         self.inner.get((i, j)).unwrap()
     }
 
-    pub fn get_mut(&mut self, i: usize, j: usize) -> &mut Cell {
-        self.inner.get_mut((i, j)).unwrap()
-    }
-
     pub fn explore(&mut self, i: usize, j: usize) {
         *self.inner.get_mut((i, j)).unwrap() = Cell::Explored;
         self.current = (i, j);
@@ -119,6 +115,10 @@ impl Map {
             r.push((i, j + 1));
         }
         r
+    }
+
+    pub fn discovered_cells(&self) -> usize {
+        self.inner.iter().filter(|c| **c == Cell::Explored).count()
     }
 }
 
@@ -188,6 +188,17 @@ impl Map {
                 self.draw_cell(display, i as i32, j as i32, color)?;
             }
         }
+        Text::new(
+            format!("Visited = {}", self.discovered_cells()).as_str(),
+            Point::new(0, px(self.inner.shape().0 as u32) as i32),
+        )
+        .into_styled(
+            TextStyleBuilder::new(Font8x16)
+                .text_color(Rgb888::YELLOW)
+                .background_color(Rgb888::BLACK)
+                .build(),
+        )
+        .draw(display)?;
 
         Ok(())
     }

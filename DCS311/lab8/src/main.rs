@@ -4,15 +4,17 @@ use embedded_graphics::prelude::*;
 use embedded_graphics_simulator::{
     OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-use std::{io::Read, thread};
-use std::{str::FromStr, time::Duration};
+use std::io::Read;
+use std::str::FromStr;
 
-// mod astar;
+mod astar;
 mod map;
+mod search;
 mod ucs;
 
-// use astar::AStarSearch;
+use astar::AStarSearch;
 use map::{Cell, Map};
+use search::{CostFunction, GenericSearch, Search};
 use ucs::UniformCostSearch;
 
 pub(crate) const fn px(pt: u32) -> u32 {
@@ -20,10 +22,9 @@ pub(crate) const fn px(pt: u32) -> u32 {
 }
 
 fn main() -> Result<()> {
-    let mut display: SimulatorDisplay<Rgb888> = SimulatorDisplay::new(Size::new(px(36), px(18)));
-    let output_settings = OutputSettingsBuilder::new()
-        // .theme(BinaryColorTheme::OledBlue)
-        .build();
+    let mut display: SimulatorDisplay<Rgb888> =
+        SimulatorDisplay::new(Size::new(px(36), px(18) + 16));
+    let output_settings = OutputSettingsBuilder::new().build();
     let mut window = Window::new("Lab 8 FU Yuze", &output_settings);
 
     let mut map = String::new();
@@ -31,14 +32,21 @@ fn main() -> Result<()> {
     let mut map = Map::from_str(&map)?;
 
     map.draw(&mut display)?;
-    let mut search = UniformCostSearch::new(&mut map);
+    let mut search: Box<dyn Search> = {
+        let op = std::env::args().nth(1);
+        match op.as_deref() {
+            Some("astar") => Box::new(AStarSearch::new(&mut map)),
+            Some("ucs") => Box::new(UniformCostSearch::new(&mut map)),
+            _ => panic!("unknown operation, use `astar` or `ucs`"),
+        }
+    };
     let mut found = false;
 
     'running: loop {
         window.update(&display);
 
         if !found {
-            if let Some(route) = search.iterate()? {
+            if search.iterate()?.is_some() {
                 found = true;
             }
             search.draw(&mut display)?;
@@ -50,7 +58,6 @@ fn main() -> Result<()> {
                 _ => {}
             }
         }
-        // thread::sleep(Duration::from_millis(1));
     }
 
     Ok(())
