@@ -2,10 +2,9 @@ use super::px;
 use embedded_graphics::pixelcolor::Rgb888;
 use embedded_graphics::prelude::*;
 use embedded_graphics::primitives::Rectangle;
-use embedded_graphics::style::PrimitiveStyleBuilder;
+use embedded_graphics::style::{PrimitiveStyle, PrimitiveStyleBuilder};
 use nalgebra::{DMatrix, Point2};
 use std::convert::{TryFrom, TryInto};
-use std::ops::{Deref, DerefMut};
 use std::str::FromStr;
 
 #[derive(thiserror::Error, Debug)]
@@ -27,6 +26,25 @@ pub enum Cell {
     Wall = 0x01,
     Start = 0x10,
     End = 0x11,
+    Explored = 0x12,
+}
+
+impl Cell {
+    pub fn reachable(&self) -> bool {
+        match self {
+            Cell::Road | Cell::Start | Cell::End => true,
+            Cell::Wall | Cell::Explored => false,
+        }
+    }
+
+    pub fn get_color(&self) -> Rgb888 {
+        match self {
+            Cell::Road | Cell::Start => Rgb888::RED,
+            Cell::Explored => Rgb888::YELLOW,
+            Cell::Wall => Rgb888::BLACK,
+            Cell::End => Rgb888::GREEN,
+        }
+    }
 }
 
 impl FromStr for Cell {
@@ -62,6 +80,47 @@ pub struct Map {
     current: Point2<usize>,
 }
 
+impl Map {
+    pub fn current(&self) -> &Point2<usize> {
+        &self.current
+    }
+
+    pub fn current_mut(&mut self) -> &mut Point2<usize> {
+        &mut self.current
+    }
+
+    pub fn get(&self, i: usize, j: usize) -> &Cell {
+        self.inner.get((i, j)).unwrap()
+    }
+
+    pub fn get_mut(&mut self, i: usize, j: usize) -> &mut Cell {
+        self.inner.get_mut((i, j)).unwrap()
+    }
+
+    pub fn explore(&mut self, i: usize, j: usize) {
+        *self.inner.get_mut((i, j)).unwrap() = Cell::Explored;
+        self.current = nalgebra::Point2::new(i, j);
+    }
+
+    pub fn adjacent(&mut self, i: usize, j: usize) -> Vec<(usize, usize)> {
+        let mut r = Vec::new();
+
+        if i > 0 {
+            r.push((i - 1, j));
+        }
+        if j > 0 {
+            r.push((i, j - 1));
+        }
+        if i + 1 < self.inner.shape().0 {
+            r.push((i + 1, j));
+        }
+        if j + 1 < self.inner.shape().1 {
+            r.push((i, j + 1));
+        }
+        r
+    }
+}
+
 impl FromStr for Map {
     type Err = ParseError;
 
@@ -93,50 +152,28 @@ impl FromStr for Map {
     }
 }
 
-impl Deref for Map {
-    type Target = DMatrix<Cell>;
+impl Map {
+    pub fn draw_cell<D: DrawTarget<Rgb888>>(
+        &self,
+        display: &mut D,
+        i: i32,
+        j: i32,
+        color: Rgb888,
+    ) -> Result<(), D::Error> {
+        Rectangle::new(
+            Point::new(px(j as u32) as i32, px(i as u32) as i32),
+            Point::new(px((j + 1) as u32) as i32, px((i + 1) as u32) as i32),
+        )
+        .into_styled(PrimitiveStyleBuilder::new().fill_color(color).build())
+        .draw(display)?;
 
-    fn deref(&self) -> &Self::Target {
-        &self.inner
+        Ok(())
     }
-}
-
-impl DerefMut for Map {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        &mut self.inner
-    }
-}
-
-impl Drawable<Rgb888> for Map {
-    fn draw<D: DrawTarget<Rgb888>>(self, display: &mut D) -> Result<(), D::Error> {
-        let cell_step = PrimitiveStyleBuilder::new().fill_color(Rgb888::RED).build();
-        let cell_wall = PrimitiveStyleBuilder::new()
-            .fill_color(Rgb888::BLACK)
-            .build();
-        let cell_current = PrimitiveStyleBuilder::new()
-            .fill_color(Rgb888::YELLOW)
-            .build();
-        let cell_end = PrimitiveStyleBuilder::new()
-            .fill_color(Rgb888::GREEN)
-            .build();
-
+    pub fn draw<D: DrawTarget<Rgb888>>(&self, display: &mut D) -> Result<(), D::Error> {
         for (i, row) in self.inner.row_iter().enumerate() {
             for (j, cell) in row.column_iter().enumerate() {
-                let style = if self.current[0] == i && self.current[1] == j {
-                    &cell_current
-                } else {
-                    match cell[0] {
-                        Cell::Road | Cell::Start => &cell_step,
-                        Cell::Wall => &cell_wall,
-                        Cell::End => &cell_end,
-                    }
-                };
-                Rectangle::new(
-                    Point::new(px(j as u32) as i32, px(i as u32) as i32),
-                    Point::new(px((j + 1) as u32) as i32, px((i + 1) as u32) as i32),
-                )
-                .into_styled(style.to_owned())
-                .draw(display)?;
+                let color = cell[0].get_color();
+                self.draw_cell(display, i as i32, j as i32, color)?;
             }
         }
 
