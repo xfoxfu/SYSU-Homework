@@ -203,11 +203,11 @@ pub async fn main(opt: super::options::Server) -> Result<(), Box<dyn std::error:
 
             let messages_ref = messages.clone();
             let send_to_subscribers = async move {
+                let subscribers_ref = subscribers.clone();
                 loop {
-                    let subscribers_ref = subscribers.clone();
-                    let subs = &mut subscribers_ref.borrow_mut().subscribers;
-                    if !subs.is_empty() {
+                    if !subscribers_ref.borrow_mut().subscribers.is_empty() {
                         if let Some((s, ts)) = messages_ref.lock().await.pop_front() {
+                            let subs = &mut subscribers_ref.borrow_mut().subscribers;
                             for (&idx, subscriber) in subs.iter_mut() {
                                 let mut request = subscriber.client.publish_request();
                                 let mut msg = request.get().init_message();
