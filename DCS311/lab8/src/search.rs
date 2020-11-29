@@ -54,9 +54,11 @@ impl<'a, C: CostFunction> GenericSearch<'a, C> {
 
 impl<'a, C: CostFunction> Search for GenericSearch<'a, C> {
     fn iterate(&mut self) -> Result<Option<Vec<(usize, usize)>>, SearchError> {
-        let ((u, v), Reverse(pri)) = self.frontier.pop().ok_or(SearchError::Failure)?;
+        // 获得下一次的节点
+        let ((u, v), Reverse(pri)) = self.frontier.pop().ok_or(SearchError::Failure)?; // 若无法达到目的节点（队列为空），返回错误
         let cell = *self.map.get(u, v);
         self.map.explore(u, v);
+        // 若达到边界，返回路径信息
         if cell == Cell::End {
             return Ok(Some(self.get_route()));
         }
@@ -64,26 +66,30 @@ impl<'a, C: CostFunction> Search for GenericSearch<'a, C> {
             if !self.map.get(i, j).reachable() {
                 continue;
             }
+            let dist = C::f(pri, 1, (u, v), self.map.target());
             if let Some(Reverse(npri)) = self.frontier.get_priority(&(i, j)).copied() {
-                if pri + 1 < npri {
-                    self.frontier
-                        .change_priority(&(i, j), C::f(pri, 1, (u, v), self.map.target()));
+                // 如果已经存在队列中，且需要更新距离，更新距离信息
+                if dist.0 < npri {
+                    self.frontier.change_priority(&(i, j), dist);
                     *self.parent.get_mut(&(i, j)).unwrap() = (u, v);
                 }
             } else {
-                self.frontier
-                    .push((i, j), C::f(pri, 1, (u, v), self.map.target()));
+                // 否则直接插入
+                self.frontier.push((i, j), dist);
                 self.parent.insert((i, j), (u, v));
             }
         }
 
+        // 需要继续迭代
         Ok(None)
     }
 
     fn get_route(&self) -> Vec<(usize, usize)> {
         let mut r = Vec::new();
         let (mut i, mut j) = self.map.current();
+        // 加入终点
         r.push((i, j));
+        // 持续迭代来追加前序节点
         while let Some((u, v)) = self.parent.get(&(i, j)).copied() {
             i = u;
             j = v;
