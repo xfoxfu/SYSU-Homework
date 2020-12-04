@@ -143,17 +143,21 @@ int main(int argc, char *argv[])
 */
     mean = 0.0;
 
-    parallel_for_closure(1, M - 1, 1, [&w](size_t i) {
-        w[i][0] = 100.0;
+    parallel_for_closure(1, M - 1, 1, [&w](size_t start, size_t end, size_t incr) {
+        for (size_t i = start; i < end; i += incr)
+            w[i][0] = 100.0;
     });
-    parallel_for_closure(1, M - 1, 1, [&w](size_t i) {
-        w[i][N - 1] = 100.0;
+    parallel_for_closure(1, M - 1, 1, [&w](size_t start, size_t end, size_t incr) {
+        for (size_t i = start; i < end; i += incr)
+            w[i][N - 1] = 100.0;
     });
-    parallel_for_closure(0, N, 1, [&w](size_t j) {
-        w[M - 1][j] = 100.0;
+    parallel_for_closure(0, N, 1, [&w](size_t start, size_t end, size_t incr) {
+        for (size_t j = start; j < end; j += incr)
+            w[M - 1][j] = 100.0;
     });
-    parallel_for_closure(0, N, 1, [&w](size_t j) {
-        w[0][j] = 0.0;
+    parallel_for_closure(0, N, 1, [&w](size_t start, size_t end, size_t incr) {
+        for (size_t j = start; j < end; j += incr)
+            w[0][j] = 0.0;
     });
     /*
      * Average the boundary values, to come up with a reasonable
@@ -161,11 +165,21 @@ int main(int argc, char *argv[])
      */
     mean += parallel_for_reduce(
         1, M - 1, 1,
-        [&w](size_t i) { return w[i][0] + w[i][N - 1]; },
+        [&w](size_t start, size_t end, size_t incr) {
+            double local_mean;
+            for (size_t i = start; i < end; i += incr)
+                local_mean += w[i][0] + w[i][N - 1];
+            return local_mean;
+        },
         [](double lhs, double rhs) { return lhs + rhs; });
     mean += parallel_for_reduce(
         1, N, 1,
-        [&w](size_t j) { return w[M - 1][j] + w[0][j]; },
+        [&w](size_t start, size_t end, size_t incr) {
+            double local_mean;
+            for (size_t j = start; j < end; j += incr)
+                local_mean += w[M - 1][j] + w[0][j];
+            return local_mean;
+        },
         [](double lhs, double rhs) { return lhs + rhs; });
 
     /*
@@ -180,10 +194,13 @@ int main(int argc, char *argv[])
     /* 
      * Initialize the interior solution to the mean value.
      */
-    parallel_for_closure(1, M - 1, 1, [&w, &mean](size_t i) {
-        for (int j = 1; j < N - 1; j++)
+    parallel_for_closure(1, M - 1, 1, [&w, &mean](size_t start, size_t end, size_t incr) {
+        for (size_t i = start; i < end; i += incr)
         {
-            w[i][j] = mean;
+            for (int j = 1; j < N - 1; j++)
+            {
+                w[i][j] = mean;
+            }
         }
     });
     /*
@@ -204,20 +221,26 @@ int main(int argc, char *argv[])
         /*
          * Save the old solution in U.
          */
-        parallel_for_closure(0, M, 1, [&u, &w](size_t i) {
-            for (size_t j = 0; j < N; j++)
+        parallel_for_closure(0, M, 1, [&u, &w](size_t start, size_t end, size_t incr) {
+            for (size_t i = start; i < end; i += incr)
             {
-                u[i][j] = w[i][j];
+                for (size_t j = 0; j < N; j++)
+                {
+                    u[i][j] = w[i][j];
+                }
             }
         });
         /*
          * Determine the new estimate of the solution at the interior points.
          * The new solution W is the average of north, south, east and west neighbors.
          */
-        parallel_for_closure(1, M - 1, 1, [&w, &u](size_t i) {
-            for (size_t j = 1; j < N - 1; j++)
+        parallel_for_closure(1, M - 1, 1, [&w, &u](size_t start, size_t end, size_t incr) {
+            for (size_t i = start; i < end; i += incr)
             {
-                w[i][j] = (u[i - 1][j] + u[i + 1][j] + u[i][j - 1] + u[i][j + 1]) / 4.0;
+                for (size_t j = 1; j < N - 1; j++)
+                {
+                    w[i][j] = (u[i - 1][j] + u[i + 1][j] + u[i][j - 1] + u[i][j + 1]) / 4.0;
+                }
             }
         });
         /*
@@ -230,14 +253,16 @@ int main(int argc, char *argv[])
         diff = 0.0;
 
         std::atomic<double> diff_atomic = diff;
-        parallel_for_closure(1, M - 1, 1, [&diff_atomic, &u, &w](size_t i) {
+        parallel_for_closure(1, M - 1, 1, [&diff_atomic, &u, &w](size_t start, size_t end, size_t incr) {
             double my_diff = 0.0;
-            size_t j;
-            for (j = 1; j < N - 1; j++)
+            for (size_t i = start; i < end; i += incr)
             {
-                if (my_diff < fabs(w[i][j] - u[i][j]))
+                for (size_t j = 1; j < N - 1; j++)
                 {
-                    my_diff = fabs(w[i][j] - u[i][j]);
+                    if (my_diff < fabs(w[i][j] - u[i][j]))
+                    {
+                        my_diff = fabs(w[i][j] - u[i][j]);
+                    }
                 }
             }
             atomic_update_max(diff_atomic, my_diff);
