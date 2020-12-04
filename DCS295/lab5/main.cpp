@@ -3,6 +3,11 @@
 #include <math.h>
 #include <omp.h>
 #include "parallel_for_closure.hpp"
+#include <string>
+
+#ifndef LAB5_SIZE
+#define LAB5_SIZE 500
+#endif
 
 void atomic_update_max(std::atomic<double> &maximum_value, double const &value) noexcept
 {
@@ -113,20 +118,20 @@ int main(int argc, char *argv[])
     Local, double W[M][N], the solution computed at the latest iteration.
 */
 {
-    constexpr size_t M = 500;
-    constexpr size_t N = 500;
+    constexpr size_t M = LAB5_SIZE;
+    constexpr size_t N = LAB5_SIZE;
 
     double diff;
     double epsilon = 0.001;
-    int i;
     int iterations;
     int iterations_print;
-    int j;
     double mean;
-    double my_diff;
     double u[M][N];
     double w[M][N];
     double wtime;
+
+    if (argc > 1)
+        omp_set_num_threads(std::stoul(std::string(argv[1])));
 
     printf("\n");
     printf("HEATED_PLATE_OPENMP\n");
@@ -134,7 +139,7 @@ int main(int argc, char *argv[])
     printf("  A program to solve for the steady state temperature distribution\n");
     printf("  over a rectangular plate.\n");
     printf("\n");
-    printf("  Spatial grid of %d by %d points.\n", M, N);
+    printf("  Spatial grid of %zu by %zu points.\n", M, N);
     printf("  The iteration will be repeated until the change is <= %e\n", epsilon);
     printf("  Number of processors available = %d\n", omp_get_num_procs());
     printf("  Number of threads =              %d\n", omp_get_max_threads());
@@ -166,7 +171,7 @@ int main(int argc, char *argv[])
     mean += parallel_for_reduce(
         1, M - 1, 1,
         [&w](size_t start, size_t end, size_t incr) {
-            double local_mean;
+            double local_mean = 0.0;
             for (size_t i = start; i < end; i += incr)
                 local_mean += w[i][0] + w[i][N - 1];
             return local_mean;
@@ -175,7 +180,7 @@ int main(int argc, char *argv[])
     mean += parallel_for_reduce(
         1, N, 1,
         [&w](size_t start, size_t end, size_t incr) {
-            double local_mean;
+            double local_mean = 0.0;
             for (size_t j = start; j < end; j += incr)
                 local_mean += w[M - 1][j] + w[0][j];
             return local_mean;
@@ -197,7 +202,7 @@ int main(int argc, char *argv[])
     parallel_for_closure(1, M - 1, 1, [&w, &mean](size_t start, size_t end, size_t incr) {
         for (size_t i = start; i < end; i += incr)
         {
-            for (int j = 1; j < N - 1; j++)
+            for (size_t j = 1; j < N - 1; j++)
             {
                 w[i][j] = mean;
             }
