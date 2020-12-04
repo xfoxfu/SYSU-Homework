@@ -1,12 +1,14 @@
+// clang-format off
 #include <chrono>
 #include <iostream>
 #include <opencv2/opencv.hpp>
 
 std::vector<cv::Point2f> control_points;
+constexpr int MAX_POINTS = 10;
 
 void mouse_handler(int event, int x, int y, int flags, void *userdata) 
 {
-    if (event == cv::EVENT_LBUTTONDOWN && control_points.size() < 4) 
+    if (event == cv::EVENT_LBUTTONDOWN && control_points.size() < MAX_POINTS) 
     {
         std::cout << "Left button of the mouse is clicked - position (" << x << ", "
         << y << ")" << '\n';
@@ -32,17 +34,30 @@ void naive_bezier(const std::vector<cv::Point2f> &points, cv::Mat &window)
 
 cv::Point2f de_Casteljau(const std::vector<cv::Point2f> &control_points, float t) 
 {
-    // TODO: Implement de Casteljau's algorithm
-    return cv::Point2f();
+    // clang-format on
+    if (control_points.size() == 1)
+        return control_points[0];
 
+    std::vector<cv::Point2f> new_points;
+    for (int i = 0; i < control_points.size() - 1; ++i)
+    {
+        new_points.push_back(t * control_points[i] + (1 - t) * control_points[i + 1]);
+    }
+    return de_Casteljau(new_points, t);
+    // clang-format off
 }
 
 void bezier(const std::vector<cv::Point2f> &control_points, cv::Mat &window) 
 {
-    // TODO: Iterate through all t = 0 to t = 1 with small steps, and call de Casteljau's 
+    // clang-format on
     // recursive Bezier algorithm.
-
-    
+    constexpr float DELTA = 0.001;
+    for (float t = 0; t <= 1; t += DELTA)
+    {
+        auto point = de_Casteljau(control_points, t);
+        window.at<cv::Vec3b>(point.y, point.x)[1] = 255;
+    }
+    // clang-format off
 }
 
 int main() 
@@ -67,10 +82,10 @@ int main()
             }
         }
 
-        if (control_points.size() == 4) 
+        if (control_points.size() == MAX_POINTS) 
         {
-            naive_bezier(control_points, window);
-            //   bezier(control_points, window);
+            // naive_bezier(control_points, window);
+            bezier(control_points, window);
 
             cv::imshow("Bezier Curve", window);
             cv::imwrite("my_bezier_curve.png", window);
@@ -85,3 +100,4 @@ int main()
 
 return 0;
 }
+// clang-format on
