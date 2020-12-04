@@ -38,8 +38,3 @@ find_package(MPI REQUIRED)
 target_compile_options(lab5 PRIVATE ${MPI_CXX_COMPILE_FLAGS})
 target_link_libraries(lab5 PUBLIC ${MPI_CXX_LIBRARIES} ${MPI_CXX_LINK_FLAGS})
 target_include_directories(lab5 PRIVATE ${MPI_CXX_INCLUDE_PATH})
-
-if(${LAB5_SIZE})
-    target_compile_definitions(lab5 PRIVATE LAB5_SIZE=${LAB5_SIZE})
-    set_target_properties(lab5 PROPERTIES OUTPUT_NAME "lab5-${LAB5_SIZE}")
-endif(${LAB5_SIZE})
