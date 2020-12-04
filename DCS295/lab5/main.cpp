@@ -2,6 +2,16 @@
 #include <stdio.h>
 #include <math.h>
 #include <omp.h>
+#include "parallel_for_closure.hpp"
+
+void atomic_update_max(std::atomic<double> &maximum_value, double const &value) noexcept
+{
+    double prev_value = maximum_value;
+    while (prev_value < value &&
+           !maximum_value.compare_exchange_weak(prev_value, value))
+    {
+    }
+}
 
 int main(int argc, char *argv[]);
 
@@ -103,8 +113,8 @@ int main(int argc, char *argv[])
     Local, double W[M][N], the solution computed at the latest iteration.
 */
 {
-#define M 500
-#define N 500
+    constexpr size_t M = 500;
+    constexpr size_t N = 500;
 
     double diff;
     double epsilon = 0.001;
@@ -133,68 +143,49 @@ int main(int argc, char *argv[])
 */
     mean = 0.0;
 
-#pragma omp parallel shared(w) private(i, j)
-    {
-#pragma omp for
-        for (i = 1; i < M - 1; i++)
-        {
-            w[i][0] = 100.0;
-        }
-#pragma omp for
-        for (i = 1; i < M - 1; i++)
-        {
-            w[i][N - 1] = 100.0;
-        }
-#pragma omp for
-        for (j = 0; j < N; j++)
-        {
-            w[M - 1][j] = 100.0;
-        }
-#pragma omp for
-        for (j = 0; j < N; j++)
-        {
-            w[0][j] = 0.0;
-        }
-/*
-  Average the boundary values, to come up with a reasonable
-  initial value for the interior.
-*/
-#pragma omp for reduction(+ \
-                          : mean)
-        for (i = 1; i < M - 1; i++)
-        {
-            mean = mean + w[i][0] + w[i][N - 1];
-        }
-#pragma omp for reduction(+ \
-                          : mean)
-        for (j = 0; j < N; j++)
-        {
-            mean = mean + w[M - 1][j] + w[0][j];
-        }
-    }
+    parallel_for_closure(1, M - 1, 1, [&w](size_t i) {
+        w[i][0] = 100.0;
+    });
+    parallel_for_closure(1, M - 1, 1, [&w](size_t i) {
+        w[i][N - 1] = 100.0;
+    });
+    parallel_for_closure(0, N, 1, [&w](size_t j) {
+        w[M - 1][j] = 100.0;
+    });
+    parallel_for_closure(0, N, 1, [&w](size_t j) {
+        w[0][j] = 0.0;
+    });
     /*
-  OpenMP note:
-  You cannot normalize MEAN inside the parallel region.  It
-  only gets its correct value once you leave the parallel region.
-  So we interrupt the parallel region, set MEAN, and go back in.
-*/
+     * Average the boundary values, to come up with a reasonable
+     * initial value for the interior.
+     */
+    mean += parallel_for_reduce(
+        1, M - 1, 1,
+        [&w](size_t i) { return w[i][0] + w[i][N - 1]; },
+        [](double lhs, double rhs) { return lhs + rhs; });
+    mean += parallel_for_reduce(
+        1, N, 1,
+        [&w](size_t j) { return w[M - 1][j] + w[0][j]; },
+        [](double lhs, double rhs) { return lhs + rhs; });
+
+    /*
+     * OpenMP note:
+     * You cannot normalize MEAN inside the parallel region.  It
+     * only gets its correct value once you leave the parallel region.
+     * So we interrupt the parallel region, set MEAN, and go back in.
+     */
     mean = mean / (double)(2 * M + 2 * N - 4);
     printf("\n");
     printf("  MEAN = %f\n", mean);
-/* 
-  Initialize the interior solution to the mean value.
-*/
-#pragma omp parallel shared(mean, w) private(i, j)
-    {
-#pragma omp for
-        for (i = 1; i < M - 1; i++)
+    /* 
+     * Initialize the interior solution to the mean value.
+     */
+    parallel_for_closure(1, M - 1, 1, [&w, &mean](size_t i) {
+        for (int j = 1; j < N - 1; j++)
         {
-            for (j = 1; j < N - 1; j++)
-            {
-                w[i][j] = mean;
-            }
+            w[i][j] = mean;
         }
-    }
+    });
     /*
      * iterate until the  new solution W differs from the old solution U
      * by no more than EPSILON.
@@ -210,32 +201,25 @@ int main(int argc, char *argv[])
 
     while (epsilon <= diff)
     {
-#pragma omp parallel shared(u, w) private(i, j)
-        {
-/*
-  Save the old solution in U.
-*/
-#pragma omp for
-            for (i = 0; i < M; i++)
+        /*
+         * Save the old solution in U.
+         */
+        parallel_for_closure(0, M, 1, [&u, &w](size_t i) {
+            for (size_t j = 0; j < N; j++)
             {
-                for (j = 0; j < N; j++)
-                {
-                    u[i][j] = w[i][j];
-                }
+                u[i][j] = w[i][j];
             }
-/*
-  Determine the new estimate of the solution at the interior points.
-  The new solution W is the average of north, south, east and west neighbors.
-*/
-#pragma omp for
-            for (i = 1; i < M - 1; i++)
+        });
+        /*
+         * Determine the new estimate of the solution at the interior points.
+         * The new solution W is the average of north, south, east and west neighbors.
+         */
+        parallel_for_closure(1, M - 1, 1, [&w, &u](size_t i) {
+            for (size_t j = 1; j < N - 1; j++)
             {
-                for (j = 1; j < N - 1; j++)
-                {
-                    w[i][j] = (u[i - 1][j] + u[i + 1][j] + u[i][j - 1] + u[i][j + 1]) / 4.0;
-                }
+                w[i][j] = (u[i - 1][j] + u[i + 1][j] + u[i][j - 1] + u[i][j + 1]) / 4.0;
             }
-        }
+        });
         /*
   C and C++ cannot compute a maximum as a reduction operation.
 
@@ -244,28 +228,21 @@ int main(int argc, char *argv[])
   to update DIFF.
 */
         diff = 0.0;
-#pragma omp parallel shared(diff, u, w) private(i, j, my_diff)
-        {
-            my_diff = 0.0;
-#pragma omp for
-            for (i = 1; i < M - 1; i++)
+
+        std::atomic<double> diff_atomic = diff;
+        parallel_for_closure(1, M - 1, 1, [&diff_atomic, &u, &w](size_t i) {
+            double my_diff = 0.0;
+            size_t j;
+            for (j = 1; j < N - 1; j++)
             {
-                for (j = 1; j < N - 1; j++)
+                if (my_diff < fabs(w[i][j] - u[i][j]))
                 {
-                    if (my_diff < fabs(w[i][j] - u[i][j]))
-                    {
-                        my_diff = fabs(w[i][j] - u[i][j]);
-                    }
+                    my_diff = fabs(w[i][j] - u[i][j]);
                 }
             }
-#pragma omp critical
-            {
-                if (diff < my_diff)
-                {
-                    diff = my_diff;
-                }
-            }
-        }
+            atomic_update_max(diff_atomic, my_diff);
+        });
+        diff = diff_atomic;
 
         iterations++;
         if (iterations == iterations_print)

@@ -4,7 +4,7 @@ project(lab5 VERSION 0.1.0)
 ########## parallel_for ##########
 
 add_library(parallel_for
-    ../lab4/lib/parallel_for.cpp
+    lib/parallel_for.cpp
 )
 
 target_compile_features(parallel_for PUBLIC cxx_std_17)
@@ -15,7 +15,14 @@ target_include_directories(parallel_for PRIVATE include)
 
 ########## lab5 ##########
 
-add_executable(lab5 main.cpp)
+add_executable(lab5
+    main.cpp
+    parallel_for_closure.cpp
+)
+
+target_compile_features(lab5 PUBLIC cxx_std_17)
+set_target_properties(lab5 PROPERTIES CXX_EXTENSIONS OFF)
+target_compile_options(lab5 PRIVATE -Wall -Wextra)
 
 find_package(OpenMP REQUIRED)
 if(OpenMP_CXX_FOUND)
