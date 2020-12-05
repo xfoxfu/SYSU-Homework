@@ -1,9 +1,11 @@
-#include <stdlib.h>
-#include <stdio.h>
+#include <iostream>
 #include <math.h>
+#include <mpi.h>
 #include <omp.h>
-#include "parallel_for_closure.hpp"
+#include <stdio.h>
+#include <stdlib.h>
 #include <string>
+#include "parallel_for_closure.hpp"
 
 #ifndef LAB5_SIZE
 #define LAB5_SIZE 500
@@ -16,6 +18,12 @@ void atomic_update_max(std::atomic<double> &maximum_value, double const &value) 
            !maximum_value.compare_exchange_weak(prev_value, value))
     {
     }
+}
+
+std::pair<size_t, size_t> mpi_bound(size_t start, size_t end, size_t rank, size_t npes)
+{
+    size_t step = (end - start) / npes + !!((end - start) % npes);
+    return std::make_pair(start + rank * step, std::min(end, start + (rank + 1) * step));
 }
 
 struct Matrix
@@ -142,6 +150,11 @@ int main(int argc, char *argv[])
     Local, double W(M, N), the solution computed at the latest iteration.
 */
 {
+    int mpi_npes, mpi_rank;
+    MPI_Init(&argc, &argv);
+    MPI_Comm_size(MPI_COMM_WORLD, &mpi_npes);
+    MPI_Comm_rank(MPI_COMM_WORLD, &mpi_rank);
+
     size_t size = 500;
     if (argc > 1)
         size = std::stoul(std::string(argv[1]));
@@ -161,16 +174,19 @@ int main(int argc, char *argv[])
     if (argc > 2)
         omp_set_num_threads(std::stoul(std::string(argv[2])));
 
-    printf("\n");
-    printf("HEATED_PLATE_OPENMP\n");
-    printf("  C/OpenMP version\n");
-    printf("  A program to solve for the steady state temperature distribution\n");
-    printf("  over a rectangular plate.\n");
-    printf("\n");
-    printf("  Spatial grid of %zu by %zu points.\n", M, N);
-    printf("  The iteration will be repeated until the change is <= %e\n", epsilon);
-    printf("  Number of processors available = %d\n", omp_get_num_procs());
-    printf("  Number of threads =              %d\n", omp_get_max_threads());
+    if (mpi_rank == 0)
+    {
+        printf("\n");
+        printf("HEATED_PLATE_OPENMP\n");
+        printf("  C/OpenMP version\n");
+        printf("  A program to solve for the steady state temperature distribution\n");
+        printf("  over a rectangular plate.\n");
+        printf("\n");
+        printf("  Spatial grid of %zu by %zu points.\n", M, N);
+        printf("  The iteration will be repeated until the change is <= %e\n", epsilon);
+        printf("  Number of processors available = %d\n", omp_get_num_procs());
+        printf("  Number of threads =              %d\n", omp_get_max_threads());
+    }
     /*
   Set the boundary values, which don't change. 
 */
@@ -222,8 +238,11 @@ int main(int argc, char *argv[])
      * So we interrupt the parallel region, set MEAN, and go back in.
      */
     mean = mean / (double)(2 * M + 2 * N - 4);
-    printf("\n");
-    printf("  MEAN = %f\n", mean);
+    if (mpi_rank == 0)
+    {
+        printf("\n");
+        printf("  MEAN = %f\n", mean);
+    }
     /* 
      * Initialize the interior solution to the mean value.
      */
@@ -242,89 +261,109 @@ int main(int argc, char *argv[])
      */
     iterations = 0;
     iterations_print = 1;
-    printf("\n");
-    printf(" Iteration  Change\n");
-    printf("\n");
-    wtime = omp_get_wtime();
+    if (mpi_rank == 0)
+    {
+        printf("\n");
+        printf(" Iteration  Change\n");
+        printf("\n");
+    }
+    wtime = MPI_Wtime();
 
     diff = epsilon;
 
     while (epsilon <= diff)
     {
+        const auto [start, end] = mpi_bound(1, M - 1, mpi_rank, mpi_npes);
         /*
          * Save the old solution in U.
          */
-        parallel_for_closure(0, M, 1, [&u, &w, M, N](size_t start, size_t end, size_t incr) {
-            for (size_t i = start; i < end; i += incr)
+        for (size_t i = start; i < end; i++)
+        {
+            for (size_t j = 0; j < N; j++)
             {
-                for (size_t j = 0; j < N; j++)
-                {
-                    u(i, j) = w(i, j);
-                }
+                u(i, j) = w(i, j);
             }
-        });
+        }
+
+        constexpr int MPI_TAG_FORWARD = 1;
+        constexpr int MPI_TAG_BACKWARD = 2;
+
+        if (mpi_rank == 0)
+        {
+            MPI_Sendrecv(&w(end - 1, 0), w.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_FORWARD,
+                         &u(end, 0), u.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_BACKWARD,
+                         MPI_COMM_WORLD, nullptr);
+        }
+        else if (mpi_rank == mpi_npes - 1)
+        {
+            MPI_Sendrecv(&w(start, 0), w.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_BACKWARD,
+                         &u(start - 1, 0), u.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_FORWARD,
+                         MPI_COMM_WORLD, nullptr);
+        }
+        else
+        {
+            MPI_Sendrecv(&w(end - 1, 0), w.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_FORWARD,
+                         &u(end, 0), u.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_BACKWARD,
+                         MPI_COMM_WORLD, nullptr);
+            MPI_Sendrecv(&w(start, 0), w.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_BACKWARD,
+                         &u(start - 1, 0), u.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_FORWARD,
+                         MPI_COMM_WORLD, nullptr);
+        }
         /*
          * Determine the new estimate of the solution at the interior points.
          * The new solution W is the average of north, south, east and west neighbors.
          */
-        parallel_for_closure(1, M - 1, 1, [&w, &u, M, N](size_t start, size_t end, size_t incr) {
-            for (size_t i = start; i < end; i += incr)
+        for (size_t i = start; i < end; i++)
+        {
+            for (size_t j = 1; j < N - 1; j++)
             {
-                for (size_t j = 1; j < N - 1; j++)
-                {
-                    w(i, j) = (u(i - 1, j) + u(i + 1, j) + u(i, j - 1) + u(i, j + 1)) / 4.0;
-                }
+                w(i, j) = (u(i - 1, j) + u(i + 1, j) + u(i, j - 1) + u(i, j + 1)) / 4.0;
             }
-        });
+        }
         /*
-  C and C++ cannot compute a maximum as a reduction operation.
+         * C and C++ cannot compute a maximum as a reduction operation.
+         * 
+         * Therefore, we define a private variable local_diff for each thread.
+         * Once they have all computed their values, we use a CRITICAL section
+         * to update DIFF.
+         */
+        double local_diff = 0.0;
 
-  Therefore, we define a private variable MY_DIFF for each thread.
-  Once they have all computed their values, we use a CRITICAL section
-  to update DIFF.
-*/
-        diff = 0.0;
-
-        std::atomic<double> diff_atomic = diff;
-        parallel_for_closure(1, M - 1, 1, [&diff_atomic, &u, &w, M, N](size_t start, size_t end, size_t incr) {
-            double my_diff = 0.0;
-            for (size_t i = start; i < end; i += incr)
+        for (size_t i = start; i < end; i++)
+        {
+            for (size_t j = 1; j < N - 1; j++)
             {
-                for (size_t j = 1; j < N - 1; j++)
-                {
-                    if (my_diff < fabs(w(i, j) - u(i, j)))
-                    {
-                        my_diff = fabs(w(i, j) - u(i, j));
-                    }
-                }
+                local_diff = std::max(local_diff, fabs(w(i, j) - u(i, j)));
             }
-            atomic_update_max(diff_atomic, my_diff);
-        });
-        diff = diff_atomic;
+        }
+
+        MPI_Allreduce(&local_diff, &diff, 1, MPI_DOUBLE, MPI_MAX, MPI_COMM_WORLD);
+        MPI_Barrier(MPI_COMM_WORLD);
 
         iterations++;
-        if (iterations == iterations_print)
+        if (mpi_rank == 0 && iterations == iterations_print)
         {
             printf("  %8d  %f\n", iterations, diff);
             iterations_print = 2 * iterations_print;
         }
     }
-    wtime = omp_get_wtime() - wtime;
+    wtime = MPI_Wtime() - wtime;
 
-    printf("\n");
-    printf("  %8d  %f\n", iterations, diff);
-    printf("\n");
-    printf("  Error tolerance achieved.\n");
-    printf("  Wallclock time = %f\n", wtime);
-    /*
-  Terminate.
-*/
-    printf("\n");
-    printf("HEATED_PLATE_OPENMP:\n");
-    printf("  Normal end of execution.\n");
+    if (mpi_rank == 0)
+    {
+        printf("\n");
+        printf("  %8d  %f\n", iterations, diff);
+        printf("\n");
+        printf("  Error tolerance achieved.\n");
+        printf("  Wallclock time = %f\n", wtime);
+        /*
+         * Terminate.
+         */
+        printf("\n");
+        printf("HEATED_PLATE_OPENMP:\n");
+        printf("  Normal end of execution.\n");
+    }
 
+    MPI_Finalize();
     return 0;
-
-#undef M
-#undef N
 }
