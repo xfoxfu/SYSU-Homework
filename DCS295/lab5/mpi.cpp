@@ -178,15 +178,16 @@ int main(int argc, char *argv[])
     if (mpi_rank == 0)
     {
         printf("\n");
-        printf("HEATED_PLATE_OPENMP\n");
-        printf("  C/OpenMP version\n");
+        printf("HEATED_PLATE_MPI\n");
+        printf("  C++/MPI version\n");
         printf("  A program to solve for the steady state temperature distribution\n");
         printf("  over a rectangular plate.\n");
         printf("\n");
         printf("  Spatial grid of %zu by %zu points.\n", M, N);
         printf("  The iteration will be repeated until the change is <= %e\n", epsilon);
         printf("  Number of processors available = %d\n", omp_get_num_procs());
-        printf("  Number of threads =              %d\n", omp_get_max_threads());
+        printf("  Number of threads              = %d\n", omp_get_max_threads());
+        printf("  Number of processes            = %d\n", mpi_npes);
     }
     /*
   Set the boundary values, which don't change. 
@@ -244,6 +245,7 @@ int main(int argc, char *argv[])
         printf("\n");
         printf("  MEAN = %f\n", mean);
     }
+    MPI_Bcast(&mean, 1, MPI_DOUBLE, 0, MPI_COMM_WORLD);
     /* 
      * Initialize the interior solution to the mean value.
      */
