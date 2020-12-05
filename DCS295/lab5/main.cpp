@@ -1,3 +1,4 @@
+#include <atomic>
 #include <iostream>
 #include <math.h>
 #include <mpi.h>
@@ -288,26 +289,25 @@ int main(int argc, char *argv[])
         constexpr int MPI_TAG_FORWARD = 1;
         constexpr int MPI_TAG_BACKWARD = 2;
 
-        if (mpi_rank == 0)
+        if (start > 1)
         {
-            MPI_Sendrecv(&w(end - 1, 0), w.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_FORWARD,
-                         &u(end, 0), u.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_BACKWARD,
-                         MPI_COMM_WORLD, nullptr);
+            // assert(mpi_rank - 1 >= 0);
+            MPI_Sendrecv(
+                // send [start] backwards as [end]
+                &u(start, 0), u.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_BACKWARD,
+                // receives [start-1] forwards from [end]
+                &u(start - 1, 0), u.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_FORWARD,
+                MPI_COMM_WORLD, nullptr);
         }
-        else if (mpi_rank == mpi_npes - 1)
+        if (end + 1 < u.m)
         {
-            MPI_Sendrecv(&w(start, 0), w.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_BACKWARD,
-                         &u(start - 1, 0), u.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_FORWARD,
-                         MPI_COMM_WORLD, nullptr);
-        }
-        else
-        {
-            MPI_Sendrecv(&w(end - 1, 0), w.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_FORWARD,
-                         &u(end, 0), u.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_BACKWARD,
-                         MPI_COMM_WORLD, nullptr);
-            MPI_Sendrecv(&w(start, 0), w.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_BACKWARD,
-                         &u(start - 1, 0), u.n, MPI_DOUBLE, mpi_rank - 1, MPI_TAG_FORWARD,
-                         MPI_COMM_WORLD, nullptr);
+            // assert(mpi_rank + 1 < mpi_npes);
+            MPI_Sendrecv(
+                // send [end-1] forwards as [start-1]
+                &u(end - 1, 0), u.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_FORWARD,
+                // receives [end] backwards from [start]
+                &u(end, 0), u.n, MPI_DOUBLE, mpi_rank + 1, MPI_TAG_BACKWARD,
+                MPI_COMM_WORLD, nullptr);
         }
         /*
          * Determine the new estimate of the solution at the interior points.
