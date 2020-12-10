@@ -4,13 +4,11 @@ use embedded_graphics::prelude::*;
 use embedded_graphics_simulator::{
     OutputSettingsBuilder, SimulatorDisplay, SimulatorEvent, Window,
 };
-use std::io::Read;
-use std::str::FromStr;
 
 mod board;
+mod eval;
 mod opts;
-
-use board::{Board, BoardHuman, BoardState};
+use board::{Board, BoardHuman};
 
 pub(crate) const fn px(pt: u32) -> u32 {
     pt * 32
@@ -25,11 +23,11 @@ fn main() -> Result<()> {
     let output_settings = OutputSettingsBuilder::new().build();
     let mut window = Window::new("Lab 9 FU Yuze", &output_settings);
 
-    let mut board = board::Board::new(
+    let mut board = Board::new(
         opt.size,
         match opt.machine_first {
-            true => board::BoardHuman::White,
-            false => board::BoardHuman::Black,
+            true => BoardHuman::White,
+            false => BoardHuman::Black,
         },
     )?;
 
@@ -47,11 +45,32 @@ fn main() -> Result<()> {
                     if row as usize >= board.size {
                         continue;
                     }
+                    let target = board.current_color();
                     if board.is_human_turn() {
                         board.human_place(row as usize, col as usize)?;
                     } else {
                         board.machine_place(row as usize, col as usize)?;
                     }
+
+                    use embedded_graphics::{
+                        fonts::{Font8x16, Text},
+                        style::TextStyleBuilder,
+                    };
+
+                    Text::new(
+                        format!("{:>8}", eval::evaluate(&board, target)).as_str(),
+                        Point::new(
+                            px(board.size as u32) as i32 - 8 * 8,
+                            px(board.size as u32) as i32,
+                        ),
+                    )
+                    .into_styled(
+                        TextStyleBuilder::new(Font8x16)
+                            .text_color(Rgb888::YELLOW)
+                            .background_color(Rgb888::BLACK)
+                            .build(),
+                    )
+                    .draw(&mut display)?;
                 }
                 _ => {}
             }

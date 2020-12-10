@@ -1,13 +1,11 @@
 use crate::px;
-use embedded_graphics::{
-    drawable::Drawable,
-    fonts::{Font8x16, Text},
-    pixelcolor::{Rgb888, RgbColor},
-    prelude::{Point, Primitive},
-    primitives::{Circle, Rectangle},
-    style::{PrimitiveStyleBuilder, TextStyleBuilder},
-    DrawTarget,
-};
+use embedded_graphics::drawable::Drawable;
+use embedded_graphics::fonts::{Font8x16, Text};
+use embedded_graphics::pixelcolor::{Rgb888, RgbColor};
+use embedded_graphics::prelude::{Point, Primitive};
+use embedded_graphics::primitives::{Circle, Rectangle};
+use embedded_graphics::style::{PrimitiveStyleBuilder, TextStyleBuilder};
+use embedded_graphics::DrawTarget;
 
 #[derive(thiserror::Error, Debug)]
 pub enum BoardError {
@@ -127,7 +125,7 @@ impl Board {
 
     pub fn machine_place(&mut self, row: usize, col: usize) -> Result<(), BoardError> {
         if !self.is_machine_turn() {
-            return Err(BoardError::NotHumanTurn);
+            return Err(BoardError::NotMachineTurn);
         }
         self.place(row, col, self.machine_color())
     }
@@ -151,6 +149,14 @@ impl Board {
         match self.human {
             BoardHuman::Black => CellState::White,
             BoardHuman::White => CellState::Black,
+        }
+    }
+
+    pub fn current_color(&self) -> CellState {
+        match self.state {
+            BoardState::HumanTake => self.human_color(),
+            BoardState::MachineTake => self.machine_color(),
+            _ => Err(BoardError::GameEnded).unwrap(),
         }
     }
 }
@@ -196,7 +202,7 @@ impl Board {
             }
         }
         Text::new(
-            format!("State = {:?}", self.state).as_str(),
+            format!("State = {:<10?}     ", self.state).as_str(),
             Point::new(0, px(self.size as u32) as i32),
         )
         .into_styled(
