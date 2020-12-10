@@ -2,8 +2,6 @@
 #include <cstddef>
 #include <functional>
 
-constexpr size_t NUM_THREADS = 8;
-
 struct parallel_for_closure_args
 {
     std::function<void(size_t, size_t, size_t)> *iterate;

@@ -120,6 +120,9 @@ int main(int argc, char *argv[])
     Matrix w(M, N);
     double wtime;
 
+    if (argc > 2)
+        omp_set_num_threads(std::stoul(std::string(argv[2])));
+
     printf("\n");
     printf("HEATED_PLATE_OPENMP\n");
     printf("  C/OpenMP version\n");
