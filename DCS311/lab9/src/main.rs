@@ -17,7 +17,7 @@ pub(crate) const fn px(pt: u32) -> u32 {
 
 fn main() -> Result<()> {
     use clap::Clap;
-    let opt = dbg!(opts::Options::parse());
+    let opt = opts::Options::parse();
 
     let mut display: SimulatorDisplay<Rgb888> =
         SimulatorDisplay::new(Size::new(px(opt.size), px(opt.size) + 16));

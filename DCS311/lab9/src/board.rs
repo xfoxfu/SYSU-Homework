@@ -130,7 +130,6 @@ impl Board {
             BoardState::MachineTake => BoardState::HumanTake,
             _ => unreachable!(),
         };
-        self.update_wins();
         Ok(())
     }
 
@@ -138,14 +137,18 @@ impl Board {
         if !self.is_human_turn() {
             return Err(BoardError::NotHumanTurn);
         }
-        self.place(row, col, self.human_color())
+        let r = self.place(row, col, self.human_color());
+        self.update_wins();
+        r
     }
 
     pub fn machine_place(&mut self, row: usize, col: usize) -> Result<(), BoardError> {
         if !self.is_machine_turn() {
             return Err(BoardError::NotMachineTurn);
         }
-        self.place(row, col, self.machine_color())
+        let r = self.place(row, col, self.machine_color());
+        self.update_wins();
+        r
     }
 
     pub fn current_try_place(
