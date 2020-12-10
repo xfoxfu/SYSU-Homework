@@ -1,0 +1,13 @@
+[package]
+name = "lab9"
+version = "1.0.0"
+authors = ["Yuze Fu <i@xfox.me>"]
+edition = "2018"
+publish = false
+
+[dependencies]
+anyhow = "1.0.35"
+clap = "3.0.0-beta.2"
+embedded-graphics = "0.6.2"
+embedded-graphics-simulator = "0.2.1"
+thiserror = "1.0.22"
