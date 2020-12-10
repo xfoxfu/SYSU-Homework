@@ -8,7 +8,8 @@ use embedded_graphics_simulator::{
 mod board;
 mod eval;
 mod opts;
-use board::{Board, BoardHuman};
+mod search;
+use board::{Board, BoardHuman, CellState};
 
 pub(crate) const fn px(pt: u32) -> u32 {
     pt * 32
@@ -36,6 +37,11 @@ fn main() -> Result<()> {
 
         board.draw(&mut display)?;
 
+        if board.is_machine_turn() {
+            let (row, col) = search::search_strategy(&mut board, opt.depth);
+            board.machine_place(row as usize, col as usize)?;
+        }
+
         for event in window.events() {
             #[allow(clippy::single_match)]
             match event {
@@ -45,11 +51,12 @@ fn main() -> Result<()> {
                     if row as usize >= board.size {
                         continue;
                     }
-                    let target = board.current_color();
+                    if board.get(row as usize, col as usize) != CellState::Null {
+                        continue;
+                    }
+
                     if board.is_human_turn() {
                         board.human_place(row as usize, col as usize)?;
-                    } else {
-                        board.machine_place(row as usize, col as usize)?;
                     }
 
                     use embedded_graphics::{
@@ -58,15 +65,20 @@ fn main() -> Result<()> {
                     };
 
                     Text::new(
-                        format!("{:>8}", eval::evaluate(&board, target)).as_str(),
+                        format!(
+                            "H{:>8}M{:>8}",
+                            eval::evaluate(&board, board.human_color()),
+                            eval::evaluate(&board, board.machine_color())
+                        )
+                        .as_str(),
                         Point::new(
-                            px(board.size as u32) as i32 - 8 * 8,
+                            px(board.size as u32) as i32 - 18 * 8,
                             px(board.size as u32) as i32,
                         ),
                     )
                     .into_styled(
                         TextStyleBuilder::new(Font8x16)
-                            .text_color(Rgb888::YELLOW)
+                            .text_color(Rgb888::WHITE)
                             .background_color(Rgb888::BLACK)
                             .build(),
                     )

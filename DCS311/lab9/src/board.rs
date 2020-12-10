@@ -19,6 +19,8 @@ pub enum BoardError {
     GameEnded,
     #[error("invalid placement {0:?} => {0:?}")]
     InvalidPlacement(CellState, CellState),
+    #[error("recovery inconsistency {0:?} => {0:?}")]
+    InvalidRecover(CellState, CellState),
 }
 
 /// global game state
@@ -94,6 +96,21 @@ impl Board {
         self.inner[row * self.size + col]
     }
 
+    pub fn has_neighbor(&self, row: usize, col: usize) -> bool {
+        for r in
+            (std::cmp::max(0, row as isize - 2) as usize)..=std::cmp::min(self.size - 1, row + 2)
+        {
+            for c in (std::cmp::max(0, col as isize - 2) as usize)
+                ..=std::cmp::min(self.size - 1, col + 2)
+            {
+                if self.get(r, c) != CellState::Null {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
     pub fn set(&mut self, row: usize, col: usize, val: CellState) {
         self.inner[row * self.size + col] = val;
     }
@@ -113,6 +130,7 @@ impl Board {
             BoardState::MachineTake => BoardState::HumanTake,
             _ => unreachable!(),
         };
+        self.update_wins();
         Ok(())
     }
 
@@ -128,6 +146,29 @@ impl Board {
             return Err(BoardError::NotMachineTurn);
         }
         self.place(row, col, self.machine_color())
+    }
+
+    pub fn current_try_place(
+        &mut self,
+        row: usize,
+        col: usize,
+    ) -> Result<(usize, usize, CellState, BoardState), BoardError> {
+        let prev = (self.get(row, col), self.state);
+        self.place(row, col, self.current_color())?;
+        Ok((row, col, prev.0, prev.1))
+    }
+
+    pub fn current_recover(
+        &mut self,
+        (row, col, pcell, state): (usize, usize, CellState, BoardState),
+    ) -> Result<(), BoardError> {
+        let cell = self.get(row, col);
+        // if cell != pcell {
+        //     return Err(BoardError::InvalidRecover(cell, pcell));
+        // }
+        self.set(row, col, CellState::Null);
+        self.state = state;
+        Ok(())
     }
 
     pub fn is_human_turn(&self) -> bool {
@@ -157,6 +198,59 @@ impl Board {
             BoardState::HumanTake => self.human_color(),
             BoardState::MachineTake => self.machine_color(),
             _ => Err(BoardError::GameEnded).unwrap(),
+        }
+    }
+
+    pub fn last_color(&self) -> CellState {
+        match self.state {
+            BoardState::HumanTake => self.machine_color(),
+            BoardState::MachineTake => self.human_color(),
+            _ => Err(BoardError::GameEnded).unwrap(),
+        }
+    }
+
+    pub fn check_wins(&self, target: CellState) -> bool {
+        for row in 0..self.size {
+            for col in 0..self.size {
+                if (row + 4 < self.size
+                    && self.get(row, col) == target
+                    && self.get(row + 1, col) == target
+                    && self.get(row + 2, col) == target
+                    && self.get(row + 3, col) == target
+                    && self.get(row + 4, col) == target)
+                    || (col + 4 < self.size
+                        && self.get(row, col) == target
+                        && self.get(row, col + 1) == target
+                        && self.get(row, col + 2) == target
+                        && self.get(row, col + 3) == target
+                        && self.get(row, col + 4) == target)
+                    || (row + 4 < self.size
+                        && col + 4 < self.size
+                        && self.get(row, col) == target
+                        && self.get(row + 1, col + 1) == target
+                        && self.get(row + 2, col + 2) == target
+                        && self.get(row + 3, col + 3) == target
+                        && self.get(row + 4, col + 4) == target)
+                    || (row + 4 < self.size
+                        && col >= 4
+                        && self.get(row, col) == target
+                        && self.get(row + 1, col - 1) == target
+                        && self.get(row + 2, col - 2) == target
+                        && self.get(row + 3, col - 3) == target
+                        && self.get(row + 4, col - 4) == target)
+                {
+                    return true;
+                }
+            }
+        }
+        false
+    }
+
+    pub fn update_wins(&mut self) {
+        if self.check_wins(self.human_color()) {
+            self.state = BoardState::HumanWin;
+        } else if self.check_wins(self.machine_color()) {
+            self.state = BoardState::HumanLose;
         }
     }
 }
@@ -208,7 +302,11 @@ impl Board {
         .into_styled(
             TextStyleBuilder::new(Font8x16)
                 .text_color(Rgb888::YELLOW)
-                .background_color(Rgb888::BLACK)
+                .background_color(match self.state {
+                    BoardState::HumanWin => Rgb888::GREEN,
+                    BoardState::HumanLose => Rgb888::RED,
+                    _ => Rgb888::BLACK,
+                })
                 .build(),
         )
         .draw(display)?;
