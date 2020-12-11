@@ -37,6 +37,31 @@ fn main() -> Result<()> {
 
         board.draw(&mut display)?;
 
+        use embedded_graphics::{
+            fonts::{Font8x16, Text},
+            style::TextStyleBuilder,
+        };
+
+        Text::new(
+            format!(
+                "H{:>8}M{:>8}",
+                eval::evaluate(&board, board.human_color()),
+                eval::evaluate(&board, board.machine_color())
+            )
+            .as_str(),
+            Point::new(
+                px(board.size as u32) as i32 - 18 * 8,
+                px(board.size as u32) as i32,
+            ),
+        )
+        .into_styled(
+            TextStyleBuilder::new(Font8x16)
+                .text_color(Rgb888::WHITE)
+                .background_color(Rgb888::BLACK)
+                .build(),
+        )
+        .draw(&mut display)?;
+
         if board.is_machine_turn() {
             let (row, col) = search::search_strategy(&mut board, opt.depth);
             board.machine_place(row as usize, col as usize)?;
@@ -58,31 +83,6 @@ fn main() -> Result<()> {
                     if board.is_human_turn() {
                         board.human_place(row as usize, col as usize)?;
                     }
-
-                    use embedded_graphics::{
-                        fonts::{Font8x16, Text},
-                        style::TextStyleBuilder,
-                    };
-
-                    Text::new(
-                        format!(
-                            "H{:>8}M{:>8}",
-                            eval::evaluate(&board, board.human_color()),
-                            eval::evaluate(&board, board.machine_color())
-                        )
-                        .as_str(),
-                        Point::new(
-                            px(board.size as u32) as i32 - 18 * 8,
-                            px(board.size as u32) as i32,
-                        ),
-                    )
-                    .into_styled(
-                        TextStyleBuilder::new(Font8x16)
-                            .text_color(Rgb888::WHITE)
-                            .background_color(Rgb888::BLACK)
-                            .build(),
-                    )
-                    .draw(&mut display)?;
                 }
                 _ => {}
             }
