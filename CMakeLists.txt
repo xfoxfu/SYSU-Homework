@@ -6,6 +6,7 @@ pkg_check_modules(MYSQL REQUIRED mysqlclient>=8.0)
 
 add_executable(bookman
     src/main.cpp
+    src/ui.cpp
 )
 
 target_compile_features(bookman PUBLIC cxx_std_17)
