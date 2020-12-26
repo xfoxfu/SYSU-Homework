@@ -95,13 +95,17 @@ Matrix product_cublas(const Matrix &L, const Matrix &R)
     // perform product
     cublasHandle_t handle;
     double alpha = 1.0;
-    double beta = 1.0;
+    double beta = 0.0;
     cublasCreate(&handle);
     cublasSetMatrix(L.m(), L.n(), sizeof(Matrix::data_t), L._data, L.n(), dev_l, L.n());
-    cublasSetMatrix(R.m(), R.n(), sizeof(Matrix::data_t), R._data, R.m(), dev_r, R.m());
-    cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N, L.m(), L.n(), R.n(), &alpha, dev_r, L.m(), dev_l, R.n(), &beta, dev_o, L.m());
+    cublasSetMatrix(R.n(), R.m(), sizeof(Matrix::data_t), R._data, R.m(), dev_r, R.m());
+    cublasDgemm(handle, CUBLAS_OP_T, CUBLAS_OP_N,
+                O.m(), O.n(), L.n(),
+                &alpha, dev_r, R.n(),
+                dev_l, L.n(), &beta,
+                dev_o, O.m());
     // copy result back
-    cublasGetMatrix(O.m(), O.n(), sizeof(Matrix::data_t), dev_o, L.n(), O._data, L.n());
+    cublasGetMatrix(O.m(), O.n(), sizeof(Matrix::data_t), dev_o, O.n(), O._data, O.n());
     // free memory
     CUDA_CHECKED_RUN(cudaFree(dev_l));
     CUDA_CHECKED_RUN(cudaFree(dev_r));
