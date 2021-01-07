@@ -78,22 +78,22 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `bookstore`.`order`
+-- Table `bookstore`.`purchase`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `bookstore`.`order` ;
+DROP TABLE IF EXISTS `bookstore`.`purchase` ;
 
-CREATE TABLE IF NOT EXISTS `bookstore`.`order` (
+CREATE TABLE IF NOT EXISTS `bookstore`.`purchase` (
   `order_id` INT NOT NULL AUTO_INCREMENT COMMENT '购书订单（消费者）ID',
-  `order_book_id` INT NOT NULL COMMENT '图书ID',
+  `book_id` INT NOT NULL COMMENT '图书ID',
   `price` DECIMAL(10,2) NOT NULL DEFAULT 0 COMMENT '购买时单价',
   `count` INT NOT NULL DEFAULT 0 COMMENT '购买数量',
   `customer_name` VARCHAR(45) NOT NULL COMMENT '消费者名称',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
   `updated_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '修改时间',
   PRIMARY KEY (`order_id`),
-  INDEX `order_book_id_idx` (`order_book_id` ASC) INVISIBLE,
+  INDEX `order_book_id_idx` (`book_id` ASC) INVISIBLE,
   CONSTRAINT `order_book_id`
-    FOREIGN KEY (`order_book_id`)
+    FOREIGN KEY (`book_id`)
     REFERENCES `bookstore`.`book` (`book_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS `bookstore`.`refund` (
   INDEX `order_id_idx` (`order_id` ASC) VISIBLE,
   CONSTRAINT `order_id`
     FOREIGN KEY (`order_id`)
-    REFERENCES `bookstore`.`order` (`order_id`)
+    REFERENCES `bookstore`.`purchase` (`order_id`)
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -141,6 +141,24 @@ CREATE TABLE IF NOT EXISTS `bookstore`.`stock` (
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
+DELIMITER $$
+create PROCEDURE purchase(IN id INT, IN purchaseCnt INT, IN customer_name VARCHAR(45), OUT res INT)
+BEGIN
+	DECLARE c INT;
+    declare total_price decimal(10,2);
+    start transaction;
+    select count into c FROM book WHERE book_id=id;
+    if (c>purchaseCnt) then
+        SELECT book.*,price*purchaseCnt as total_cost FROM book WHERE book_id=id;
+        UPDATE book set count=count-purchaseCnt where book_id=id;
+        insert into bookstore.purchase select null,id, price,purchaseCnt, customer_name,now(),now() FROM book WHERE book_id=id;
+        SET res=1;
+    else
+        SET res=0;
+	end if;
+    commit;
+END$$
+DELIMITER ;
 
 SET SQL_MODE=@OLD_SQL_MODE;
 SET FOREIGN_KEY_CHECKS=@OLD_FOREIGN_KEY_CHECKS;
