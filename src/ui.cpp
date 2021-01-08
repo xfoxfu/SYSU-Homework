@@ -43,32 +43,63 @@ void print_table(const std::vector<std::map<std::string, std::string>> &table)
 
 int input_number(const char *prompt)
 {
-    return std::stoi(input_string(prompt));
+    while (true)
+    {
+        try
+        {
+            return std::stoi(input_string(prompt));
+        }
+        catch (const std::exception &e)
+        {
+            fmt::print(fg(fmt::color::red), "Invalid input.\n");
+        }
+    }
 }
 unsigned int input_unsigned(const char *prompt)
 {
-    return std::stoul(input_string(prompt));
+    while (true)
+    {
+        try
+        {
+            return std::stoul(input_string(prompt));
+        }
+        catch (const std::exception &e)
+        {
+            fmt::print(fg(fmt::color::red), "Invalid input.\n");
+        }
+    }
 }
 std::string input_string(const char *prompt)
 {
     if (prompt != nullptr && *prompt != '\0')
-        fmt::print(fmt::emphasis::bold | fg(fmt::color::dark_orange), "{} > ", prompt);
-    else
-        fmt::print(fmt::emphasis::bold | fg(fmt::color::dark_orange), "> ");
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::dark_orange), "{}", prompt);
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::dark_orange), "> ");
     std::string buf;
     std::getline(std::cin, buf);
+    if (buf.empty() && std::cin.eof())
+    {
+        fmt::print(fg(fmt::color::red), "Input reached EOF.\n");
+        exit(1);
+    }
     trim(buf);
     return buf;
 }
 
+/**
+ * @brief  从给定的命令列表中令用户选择一个
+ * @note   会持续运行直到用户输入有效的命令
+ * @param  commands: 命令和解释的对
+ * @retval 命令
+ */
 std::string select_command(std::initializer_list<std::pair<const char *, const char *>> commands)
 {
     while (true)
     {
-        fmt::print("Choose one of the following:\n");
+        fmt::print(fg(fmt::color::blue), "Choose one of the following:\n");
         for (const auto &[command, desc] : commands)
         {
-            fmt::print("{} - {}\n", command, desc);
+            fmt::print(fmt::emphasis::underline | fg(fmt::color::dark_orange), "{}", command);
+            fmt::print(" - {}\n", desc);
         }
         auto input = input_string(nullptr);
         for (const auto &[command, _] : commands)
@@ -78,6 +109,6 @@ std::string select_command(std::initializer_list<std::pair<const char *, const c
                 return input;
             }
         }
-        fmt::print("Invalid input, try again.\n");
+        fmt::print(fg(fmt::color::red), "Invalid input, try again.\n");
     }
 }
