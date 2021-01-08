@@ -1,8 +1,8 @@
 #include "mysqlclient.h"
 
 MySQLClient::MySQLClient(const char *host, unsigned int port,
-                const char *user, const char *password,
-                const char *database)
+                         const char *user, const char *password,
+                         const char *database)
 {
     mysql_init(&mysql);
     this->host = host;
@@ -13,7 +13,8 @@ MySQLClient::MySQLClient(const char *host, unsigned int port,
     openConnection();
 }
 
-MySQLClient::~MySQLClient() {
+MySQLClient::~MySQLClient()
+{
     releaseConnection();
 }
 

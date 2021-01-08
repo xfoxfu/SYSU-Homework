@@ -1,6 +1,9 @@
 #include <iostream>
+#include "ui.hpp"
+#include <fmt/core.h>
 
-int main(int, char **)
+int main(int argc, char **argv)
 {
-    std::cout << "Hello, world!\n";
+    fmt::print("{}", input_string("test"));
+    return 0;
 }

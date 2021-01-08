@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <cctype>
 #include <locale>
+#include <fmt/core.h>
+#include <fmt/color.h>
 
 // this is copied from https://stackoverflow.com/a/217605/5272201
 static inline void ltrim(std::string &s)
@@ -31,10 +33,10 @@ void print_table(const std::vector<std::map<std::string, std::string>> &table)
     size_t i = 0;
     for (const auto &row : table)
     {
-        std::cout << "----- " << std::setw(3) << i++ << std::endl;
+        fmt::print("----- {:>3} -----\n", i++);
         for (const auto &[name, value] : row)
         {
-            std::cout << std::setw(12) << name << " : " << value << std::endl;
+            fmt::print("{:>12} : {}\n", name, value);
         }
     }
 }
@@ -49,11 +51,10 @@ unsigned int input_unsigned(const char *prompt)
 }
 std::string input_string(const char *prompt)
 {
-    if (prompt != nullptr && prompt != '\0')
-    {
-        std::cout << prompt << std::endl;
-    }
-    std::cout << "> " << std::flush;
+    if (prompt != nullptr && *prompt != '\0')
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::dark_orange), "{} > ", prompt);
+    else
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::dark_orange), "> ");
     std::string buf;
     std::getline(std::cin, buf);
     trim(buf);
@@ -64,10 +65,10 @@ std::string select_command(std::initializer_list<std::pair<const char *, const c
 {
     while (true)
     {
-        std::cout << "Choose one of the following:" << std::endl;
+        fmt::print("Choose one of the following:\n");
         for (const auto &[command, desc] : commands)
         {
-            std::cout << command << " - " << desc << std::endl;
+            fmt::print("{} - {}\n", command, desc);
         }
         auto input = input_string(nullptr);
         for (const auto &[command, _] : commands)
@@ -77,6 +78,6 @@ std::string select_command(std::initializer_list<std::pair<const char *, const c
                 return input;
             }
         }
-        std::cout << "Invalid input, try again." << std::endl;
+        fmt::print("Invalid input, try again.\n");
     }
 }
