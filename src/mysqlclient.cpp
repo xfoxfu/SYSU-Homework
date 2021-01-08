@@ -41,10 +41,10 @@ std::vector<std::map<std::string, std::string>> MySQLClient::query(const char *s
     unsigned int size = mysql_field_count(&mysql);
     MYSQL_FIELD *fields = mysql_fetch_fields(result);
     MYSQL_ROW row;
-    while (row = mysql_fetch_row(result))
+    while ((row = mysql_fetch_row(result)) != nullptr)
     {
         std::map<std::string, std::string> temp;
-        for (int i = 0; i < size; ++i)
+        for (uint i = 0; i < size; ++i)
         {
             temp[fields[i].name] = row[i] ? row[i] : "null";
         }
