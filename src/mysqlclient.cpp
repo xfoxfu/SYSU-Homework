@@ -1,17 +1,19 @@
 #include "mysqlclient.h"
-#include <vector>
 #include "../vendor/bprinter/table_printer.h"
+#include <vector>
 
 std::map<std::string, int> MySQLClient::col_size = std::map<std::string, int>{
     {"book_id", 8},
-    {"title", 25},
-    {"author", 10},
+    {"title", 30},
+    {"author", 15},
     {"isbn", 10},
     {"count", 5},
-    {"price", 8},
+    {"price", 10},
     {"created_at", 20},
     {"updated_at", 20},
-    {"total_cost", 12}};
+    {"total_cost", 12},
+    {"month", 8},
+};
 
 MySQLClient::MySQLClient(const char *host, unsigned int port,
                          const char *user, const char *password,
