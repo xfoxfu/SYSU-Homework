@@ -11,7 +11,7 @@
  Target Server Version : 80019
  File Encoding         : 65001
 
- Date: 09/01/2021 13:56:03
+ Date: 09/01/2021 21:21:24
 */
 
 SET NAMES utf8mb4;
@@ -32,20 +32,20 @@ CREATE TABLE `book`  (
   `updated_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
   PRIMARY KEY (`book_id`) USING BTREE,
   UNIQUE INDEX `isbn_UNIQUE`(`isbn`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of book
 -- ----------------------------
-INSERT INTO `book` VALUES (1, 'War and peace', 'Leo Tolstoy', '0000', 10, 25.80, '2021-01-09 13:43:18', '2021-01-09 13:43:18');
-INSERT INTO `book` VALUES (2, 'Notre Dame de Paris', 'Hugo', '3249', 534, 34.20, '2021-01-09 13:43:42', '2021-01-09 13:43:42');
-INSERT INTO `book` VALUES (3, 'Childhood', 'Gorky', '0834', 12, 9.80, '2021-01-09 13:44:15', '2021-01-09 13:44:15');
-INSERT INTO `book` VALUES (4, 'Wuthering HeightsEmily Bronte', 'Emily Bronte', '2391', 91, 65.10, '2021-01-09 13:44:54', '2021-01-09 13:44:54');
-INSERT INTO `book` VALUES (5, 'David Copperfield', 'Charles Dickens', '0018', 24, 17.20, '2021-01-09 13:45:20', '2021-01-09 13:45:20');
-INSERT INTO `book` VALUES (6, 'Red and Black', 'Stendhal', '1239', 18, 41.50, '2021-01-09 13:45:44', '2021-01-09 13:45:44');
-INSERT INTO `book` VALUES (7, 'Les Miserables', 'Hugo', '0012', 22, 32.80, '2021-01-09 13:46:14', '2021-01-09 13:46:14');
-INSERT INTO `book` VALUES (8, 'Anna Karenina', 'Leo Tolstoy', '0630', 63, 99.10, '2021-01-09 13:46:45', '2021-01-09 13:46:45');
-INSERT INTO `book` VALUES (9, 'John Christopher', 'Roman Roland', '6292', 51, 63.20, '2021-01-09 13:47:21', '2021-01-09 13:47:21');
+INSERT INTO `book` VALUES (1, 'War and peace', 'Leo Tolstoy', '0000', 5, 25.80, '2021-01-09 13:43:18', '2021-01-09 21:21:06');
+INSERT INTO `book` VALUES (2, 'Notre Dame de Paris', 'Hugo', '3249', 529, 34.20, '2021-01-09 13:43:42', '2021-01-09 21:21:06');
+INSERT INTO `book` VALUES (3, 'Childhood', 'Gorky', '0834', 7, 9.80, '2021-01-09 13:44:15', '2021-01-09 21:21:06');
+INSERT INTO `book` VALUES (4, 'Wuthering HeightsEmily Bronte', 'Emily Bronte', '2391', 86, 65.10, '2021-01-09 13:44:54', '2021-01-09 21:21:06');
+INSERT INTO `book` VALUES (5, 'David Copperfield', 'Charles Dickens', '0018', 19, 17.20, '2021-01-09 13:45:20', '2021-01-09 21:21:06');
+INSERT INTO `book` VALUES (6, 'Red and Black', 'Stendhal', '1239', 13, 41.50, '2021-01-09 13:45:44', '2021-01-09 21:21:06');
+INSERT INTO `book` VALUES (7, 'Les Miserables', 'Hugo', '0012', 17, 32.80, '2021-01-09 13:46:14', '2021-01-09 21:21:06');
+INSERT INTO `book` VALUES (8, 'Anna Karenina', 'Leo Tolstoy', '0630', 58, 99.10, '2021-01-09 13:46:45', '2021-01-09 21:21:06');
+INSERT INTO `book` VALUES (9, 'John Christopher', 'Roman Roland', '6292', 49, 63.20, '2021-01-09 13:47:21', '2021-01-09 21:21:07');
 INSERT INTO `book` VALUES (10, 'Gone with the Wind', 'Margaret Mitchell', '2311', 111, 523.30, '2021-01-09 13:47:47', '2021-01-09 13:47:47');
 
 -- ----------------------------
@@ -64,7 +64,7 @@ CREATE TABLE `offer`  (
   INDEX `provider_id_idx`(`provider_id`) USING BTREE,
   CONSTRAINT `book_id` FOREIGN KEY (`book_id`) REFERENCES `book` (`book_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
   CONSTRAINT `provider_id` FOREIGN KEY (`provider_id`) REFERENCES `provider` (`provider_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 71 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of offer
@@ -121,27 +121,6 @@ INSERT INTO `offer` VALUES (69, 5, 9, 126.40, '2021-01-09 13:54:12', '2021-01-09
 INSERT INTO `offer` VALUES (70, 5, 10, 1046.60, '2021-01-09 13:54:12', '2021-01-09 13:54:12');
 
 -- ----------------------------
--- Table structure for order
--- ----------------------------
-DROP TABLE IF EXISTS `order`;
-CREATE TABLE `order`  (
-  `order_id` int(0) NOT NULL AUTO_INCREMENT COMMENT '购书订单（消费者）ID',
-  `order_book_id` int(0) NOT NULL COMMENT '图书ID',
-  `price` decimal(10, 2) NOT NULL COMMENT '购买时单价',
-  `count` int(0) NOT NULL DEFAULT 0 COMMENT '购买数量',
-  `customer_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '消费者名称',
-  `created_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
-  `updated_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '修改时间',
-  PRIMARY KEY (`order_id`) USING BTREE,
-  INDEX `order_book_id_idx`(`order_book_id`) USING BTREE,
-  CONSTRAINT `order_book_id` FOREIGN KEY (`order_book_id`) REFERENCES `book` (`book_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
-
--- ----------------------------
--- Records of order
--- ----------------------------
-
--- ----------------------------
 -- Table structure for provider
 -- ----------------------------
 DROP TABLE IF EXISTS `provider`;
@@ -152,7 +131,7 @@ CREATE TABLE `provider`  (
   `created_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
   `updated_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
   PRIMARY KEY (`provider_id`) USING BTREE
-) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+) ENGINE = InnoDB AUTO_INCREMENT = 6 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
 -- Records of provider
@@ -164,18 +143,57 @@ INSERT INTO `provider` VALUES (4, 'Guangdong Science and Technology Press', '722
 INSERT INTO `provider` VALUES (5, 'Guangdong Higher Education Press', '3402932', '2021-01-09 13:50:22', '2021-01-09 13:50:22');
 
 -- ----------------------------
+-- Table structure for purchase
+-- ----------------------------
+DROP TABLE IF EXISTS `purchase`;
+CREATE TABLE `purchase`  (
+  `order_id` int(0) NOT NULL AUTO_INCREMENT COMMENT '购书订单（消费者）ID',
+  `book_id` int(0) NOT NULL COMMENT '图书ID',
+  `price` decimal(10, 2) NOT NULL COMMENT '购买时单价',
+  `count` int(0) NOT NULL DEFAULT 0 COMMENT '购买数量',
+  `customer_name` varchar(45) CHARACTER SET utf8mb4 COLLATE utf8mb4_0900_ai_ci NOT NULL COMMENT '消费者名称',
+  `created_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
+  `updated_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '修改时间',
+  PRIMARY KEY (`order_id`) USING BTREE,
+  INDEX `order_book_id_idx`(`book_id`) USING BTREE,
+  CONSTRAINT `purchase_order_book_id` FOREIGN KEY (`book_id`) REFERENCES `book` (`book_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+) ENGINE = InnoDB AUTO_INCREMENT = 10 CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
+
+-- ----------------------------
+-- Records of purchase
+-- ----------------------------
+INSERT INTO `purchase` VALUES (1, 1, 25.80, 1, 'zhenggehan', '2021-01-09 21:13:27', '2021-01-09 21:13:27');
+INSERT INTO `purchase` VALUES (2, 2, 34.20, 1, 'zhenggehan', '2021-01-09 21:13:27', '2021-01-09 21:13:27');
+INSERT INTO `purchase` VALUES (3, 3, 9.80, 1, 'zhenggehan', '2021-01-09 21:13:27', '2021-01-09 21:13:27');
+INSERT INTO `purchase` VALUES (4, 4, 65.10, 1, 'zhenggehan', '2021-01-09 21:13:27', '2021-01-09 21:13:27');
+INSERT INTO `purchase` VALUES (5, 5, 17.20, 1, 'zhenggehan', '2021-01-09 21:13:27', '2021-01-09 21:13:27');
+INSERT INTO `purchase` VALUES (6, 6, 41.50, 1, 'zhenggehan', '2021-01-09 21:13:27', '2021-01-09 21:13:27');
+INSERT INTO `purchase` VALUES (7, 7, 32.80, 1, 'zhenggehan', '2021-01-09 21:13:27', '2021-01-09 21:13:27');
+INSERT INTO `purchase` VALUES (8, 8, 99.10, 1, 'zhenggehan', '2021-01-09 21:13:28', '2021-01-09 21:13:28');
+INSERT INTO `purchase` VALUES (9, 9, 63.20, 1, 'zhenggehan', '2021-01-09 21:13:28', '2021-01-09 21:13:28');
+INSERT INTO `purchase` VALUES (10, 1, 25.80, 1, 'zhenggehan', '2021-01-09 21:21:06', '2021-01-09 21:21:06');
+INSERT INTO `purchase` VALUES (11, 2, 34.20, 1, 'zhenggehan', '2021-01-09 21:21:06', '2021-01-09 21:21:06');
+INSERT INTO `purchase` VALUES (12, 3, 9.80, 1, 'zhenggehan', '2021-01-09 21:21:06', '2021-01-09 21:21:06');
+INSERT INTO `purchase` VALUES (13, 4, 65.10, 1, 'zhenggehan', '2021-01-09 21:21:06', '2021-01-09 21:21:06');
+INSERT INTO `purchase` VALUES (14, 5, 17.20, 1, 'zhenggehan', '2021-01-09 21:21:06', '2021-01-09 21:21:06');
+INSERT INTO `purchase` VALUES (15, 6, 41.50, 1, 'zhenggehan', '2021-01-09 21:21:06', '2021-01-09 21:21:06');
+INSERT INTO `purchase` VALUES (16, 7, 32.80, 1, 'zhenggehan', '2021-01-09 21:21:06', '2021-01-09 21:21:06');
+INSERT INTO `purchase` VALUES (17, 8, 99.10, 1, 'zhenggehan', '2021-01-09 21:21:06', '2021-01-09 21:21:06');
+INSERT INTO `purchase` VALUES (18, 9, 63.20, 1, 'zhenggehan', '2021-01-09 21:21:07', '2021-01-09 21:21:07');
+
+-- ----------------------------
 -- Table structure for refund
 -- ----------------------------
 DROP TABLE IF EXISTS `refund`;
 CREATE TABLE `refund`  (
-  `refund_id` int(0) NOT NULL COMMENT '退款单ID',
+  `refund_id` int(0) NOT NULL AUTO_INCREMENT COMMENT '退款单ID',
   `order_id` int(0) NOT NULL COMMENT '对应的订单ID',
   `count` int(0) NOT NULL COMMENT '退货数量',
   `created_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
   `updated_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
   PRIMARY KEY (`refund_id`) USING BTREE,
   INDEX `order_id_idx`(`order_id`) USING BTREE,
-  CONSTRAINT `order_id` FOREIGN KEY (`order_id`) REFERENCES `order` (`order_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+  CONSTRAINT `order_id` FOREIGN KEY (`order_id`) REFERENCES `purchase` (`order_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
 ) ENGINE = InnoDB CHARACTER SET = utf8mb4 COLLATE = utf8mb4_0900_ai_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -200,5 +218,28 @@ CREATE TABLE `stock`  (
 -- ----------------------------
 -- Records of stock
 -- ----------------------------
+
+-- ----------------------------
+-- Procedure structure for purchase
+-- ----------------------------
+DROP PROCEDURE IF EXISTS `purchase`;
+delimiter ;;
+CREATE PROCEDURE `purchase`(IN id INT, IN purchaseCnt INT, IN customer_name VARCHAR(45))
+BEGIN
+	DECLARE c INT;
+    declare total_price decimal(10,2);
+    start transaction;
+    select count into c FROM book WHERE book_id=id;
+    if (c>=purchaseCnt) then
+        SELECT book.*,price*purchaseCnt as total_cost FROM book WHERE book_id=id;
+        UPDATE book set count=count-purchaseCnt where book_id=id;
+        insert into bookstore.purchase select null,id, price,purchaseCnt, customer_name,now(),now() FROM book WHERE book_id=id;
+    else
+		SELECT book.*,price*purchaseCnt as total_cost FROM book WHERE book_id=-1;
+	end if;
+    commit;
+END
+;;
+delimiter ;
 
 SET FOREIGN_KEY_CHECKS = 1;

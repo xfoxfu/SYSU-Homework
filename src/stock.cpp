@@ -9,7 +9,7 @@ std::vector<std::map<std::string, std::string>> showCurrentCount(MySQLClient &cl
         std::string sql = "select * from book where title = '" + title + "'";
         return client.query(sql.c_str());
     }
-    catch (std::exception &e)
+    catch (MySQLException &e)
     {
         std::cout << "error: " << e.what() << std::endl;
         return std::vector<std::map<std::string, std::string>>();
@@ -24,7 +24,7 @@ std::vector<std::map<std::string, std::string>> showProviderForBook(MySQLClient 
         std::cout << sql << std::endl;
         return client.query(sql.c_str());
     }
-    catch (std::exception &e)
+    catch (MySQLException &e)
     {
         std::cout << "error: " << e.what() << std::endl;
         return std::vector<std::map<std::string, std::string>>();
@@ -41,7 +41,7 @@ void increaseStock(MySQLClient &client, int offer_id, int book_id, int amount)
         client.update(insert.c_str());
         client.update(update.c_str());
     }
-    catch (std::exception &e)
+    catch (MySQLException &e)
     {
         std::cout << "error: " << e.what() << std::endl;
         return;

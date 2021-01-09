@@ -1,6 +1,7 @@
 #include "mysqlclient.h"
 #include "sell.h"
 #include "stock.h"
+#include "refund.h"
 #include <iostream>
 
 int main(int argc, char **argv)
@@ -21,10 +22,12 @@ int main(int argc, char **argv)
     }
 
     MySQLClient client(host.c_str(), atoi(port.c_str()), user.c_str(), password.c_str(), database.c_str());
+    /*
     for (int i = 1; i < 10; i++)
     {
         purchase(client, i, std::string("zhenggehan"), 1);
     }
+*/
     /*
     std::string command = select_command(
         {
@@ -32,7 +35,10 @@ int main(int argc, char **argv)
             {"test2", "This is description 2"},
         });
         */
+
     // 入库示例
-    fakeFrontEnd(client);
+    //fakeFrontEnd(client);
+    // 退货测例
+    testRefund(client);
     return 0;
 }
