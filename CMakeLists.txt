@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.0.0)
 project(bookman VERSION 0.1.0)
 
-find_package(PkgConfig)
-pkg_check_modules(MYSQL REQUIRED mysqlclient>=8.0)
+# find_package(PkgConfig)
+# pkg_check_modules(MYSQL REQUIRED mysqlclient>=8.0)
 
 add_executable(bookman
     src/main.cpp
