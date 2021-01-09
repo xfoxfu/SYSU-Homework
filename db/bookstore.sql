@@ -40,7 +40,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `bookstore`.`provider` ;
 
 CREATE TABLE IF NOT EXISTS `bookstore`.`provider` (
-  `provider_id` INT NOT NULL COMMENT '供应商ID',
+  `provider_id` INT NOT NULL AUTO_INCREMENT COMMENT '供应商ID',
   `name` VARCHAR(45) NOT NULL COMMENT '名字',
   `phone` VARCHAR(45) NOT NULL COMMENT '联系电话',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -127,7 +127,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `bookstore`.`stock` ;
 
 CREATE TABLE IF NOT EXISTS `bookstore`.`stock` (
-  `stock_id` INT NOT NULL COMMENT '购入（入库）单ID',
+  `stock_id` INT NOT NULL AUTO_INCREMENT COMMENT '购入（入库）单ID',
   `offer_id` INT NOT NULL COMMENT '对应的供应单ID',
   `count` INT NOT NULL COMMENT '购入图书数量',
   `created_at` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',

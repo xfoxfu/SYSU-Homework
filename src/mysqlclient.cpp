@@ -44,7 +44,7 @@ std::vector<std::map<std::string, std::string>> MySQLClient::query(const char *s
     while ((row = mysql_fetch_row(result)) != nullptr)
     {
         std::map<std::string, std::string> temp;
-        for (uint i = 0; i < size; ++i)
+        for (int i = 0; i < size; ++i)
         {
             temp[fields[i].name] = row[i] ? row[i] : "null";
         }
