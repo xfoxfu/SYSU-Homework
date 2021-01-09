@@ -6,6 +6,7 @@
 #include <stdexcept>
 #include <map>
 #include <vector>
+#include <string>
 
 // MySQL连接对象，将关于MySQL的连接操作都封装在其中
 class MySQLClient
@@ -35,12 +36,15 @@ public:
     long long update(const char *sql);
     // 执行查询语句，将每一行抽象为一个map来返回，sql是对应的MySQL语句
     std::vector<std::map<std::string, std::string>> query(const char *sql);
+    void printTable(std::vector<std::string>keys, std::vector<std::map<std::string, std::string>>& t);
 
 private:
     // 打开MySQL连接
     void openConnection();
     // 释放MySQL连接
     void releaseConnection();
+
+    static std::map<std::string, int>col_size;
 };
 
 // MySQL异常
@@ -55,4 +59,5 @@ public:
     // 返回错误信息
     const std::string &what();
 };
+
 #endif

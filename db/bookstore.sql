@@ -142,19 +142,18 @@ CREATE TABLE IF NOT EXISTS `bookstore`.`stock` (
 ENGINE = InnoDB;
 
 DELIMITER $$
-create PROCEDURE purchase(IN id INT, IN purchaseCnt INT, IN customer_name VARCHAR(45), OUT res INT)
+create PROCEDURE purchase(IN id INT, IN purchaseCnt INT, IN customer_name VARCHAR(45))
 BEGIN
 	DECLARE c INT;
     declare total_price decimal(10,2);
     start transaction;
     select count into c FROM book WHERE book_id=id;
-    if (c>purchaseCnt) then
+    if (c>=purchaseCnt) then
         SELECT book.*,price*purchaseCnt as total_cost FROM book WHERE book_id=id;
         UPDATE book set count=count-purchaseCnt where book_id=id;
         insert into bookstore.purchase select null,id, price,purchaseCnt, customer_name,now(),now() FROM book WHERE book_id=id;
-        SET res=1;
     else
-        SET res=0;
+		SELECT book.*,price*purchaseCnt as total_cost FROM book WHERE book_id=-1;
 	end if;
     commit;
 END$$
