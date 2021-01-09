@@ -59,12 +59,10 @@ Matrix conv_2d(const Matrix &in, const Matrix &ker, size_t stride, size_t bs_x, 
     cudnnTensorDescriptor_t in_desc;
     CUDNN_GUARD(cudnnCreateTensorDescriptor(&in_desc));
     CUDNN_GUARD(cudnnSetTensor4dDescriptor(in_desc, CUDNN_TENSOR_NHWC, CUDNN_DATA_DOUBLE, 1, in.p(), in.m(), in.n()));
-    fmt::print(fg(fmt::color::green), "in size = {} {} {} {}\n", 1, in.m(), in.n(), in.p());
 
     cudnnFilterDescriptor_t ker_desc;
     CUDNN_GUARD(cudnnCreateFilterDescriptor(&ker_desc));
     CUDNN_GUARD(cudnnSetFilter4dDescriptor(ker_desc, CUDNN_DATA_DOUBLE, CUDNN_TENSOR_NHWC, 1, ker.p(), ker.m(), ker.n()));
-    fmt::print(fg(fmt::color::green), "ker size = {} {} {} {}\n", 1, ker.m(), ker.n(), ker.p());
 
     size_t pad_h = padding;
     size_t pad_w = padding;
@@ -76,7 +74,6 @@ Matrix conv_2d(const Matrix &in, const Matrix &ker, size_t stride, size_t bs_x, 
     cudnnConvolutionDescriptor_t conv_desc;
     CUDNN_GUARD(cudnnCreateConvolutionDescriptor(&conv_desc));
     CUDNN_GUARD(cudnnSetConvolution2dDescriptor(conv_desc, pad_h, pad_w, str_h, str_w, dil_h, dil_w, CUDNN_CONVOLUTION, CUDNN_DATA_DOUBLE));
-    fmt::print(fg(fmt::color::green), "{} {} {} {} {} {}\n", pad_h, pad_w, str_h, str_w, dil_h, dil_w);
 
     int out_c;
     int out_m;
@@ -84,7 +81,6 @@ Matrix conv_2d(const Matrix &in, const Matrix &ker, size_t stride, size_t bs_x, 
     int out_p;
 
     CUDNN_GUARD(cudnnGetConvolution2dForwardOutputDim(conv_desc, in_desc, ker_desc, &out_c, &out_p, &out_m, &out_n));
-    fmt::print(fg(fmt::color::green), "out size = {} {} {} {}\n", out_c, out_m, out_n, out_p);
 
     cudnnTensorDescriptor_t out_desc;
     CUDNN_GUARD(cudnnCreateTensorDescriptor(&out_desc));
@@ -96,29 +92,33 @@ Matrix conv_2d(const Matrix &in, const Matrix &ker, size_t stride, size_t bs_x, 
 
     cudnnConvolutionFwdAlgoPerf_t perf;
     int perf_count;
-    CUDNN_GUARD(cudnnGetConvolutionForwardAlgorithm_v7(cudnn, in_desc, ker_desc, conv_desc, out_desc, 1, &perf_count, &perf));
+    CUDNN_GUARD(cudnnGetConvolutionForwardAlgorithm_v7(
+        cudnn,
+        in_desc, ker_desc, conv_desc, out_desc,
+        1, &perf_count, &perf));
 
-    std::cout << "Convolution algorithm: " << perf.algo << std::endl;
-    std::cout << std::endl;
+    size_t ws_len;
+    CUDNN_GUARD(cudnnGetConvolutionForwardWorkspaceSize(
+        cudnn,
+        in_desc, ker_desc, conv_desc, out_desc,
+        perf.algo, &ws_len));
 
-    size_t ws_size;
-    CUDNN_GUARD(cudnnGetConvolutionForwardWorkspaceSize(cudnn, in_desc, ker_desc, conv_desc, out_desc, perf.algo, &ws_size));
-
-    Matrix::data_t *ws_data;
-    CUDA_GUARD(cudaMalloc(&ws_data, ws_size));
-
-    std::cout << "Workspace size: " << ws_size << std::endl;
-    std::cout << std::endl;
+    Matrix::data_t *ker_ws;
+    CUDA_GUARD(cudaMalloc(&ker_ws, ws_len));
 
     Matrix::data_t alpha = 1.f;
     Matrix::data_t beta = 0.f;
-    CUDNN_GUARD(cudnnConvolutionForward(cudnn, &alpha, in_desc, dev_in, ker_desc, dev_ker, conv_desc, perf.algo, ws_data, ws_size, &beta, out_desc, dev_out));
+    CUDNN_GUARD(cudnnConvolutionForward(
+        cudnn, &alpha,
+        in_desc, dev_in, ker_desc, dev_ker, conv_desc,
+        perf.algo, ker_ws, ws_len,
+        &beta, out_desc, dev_out));
     CUDA_GUARD(cudaMemcpy(out._data, dev_out, out.data_size(), cudaMemcpyDeviceToHost));
 
     CUDA_GUARD(cudaFree(dev_in));
     CUDA_GUARD(cudaFree(dev_ker));
     CUDA_GUARD(cudaFree(dev_out));
-    CUDA_GUARD(cudaFree(ws_data));
+    CUDA_GUARD(cudaFree(ker_ws));
     CUDNN_GUARD(cudnnDestroy(cudnn));
     CUDNN_GUARD(cudnnDestroyConvolutionDescriptor(conv_desc));
     CUDNN_GUARD(cudnnDestroyFilterDescriptor(ker_desc));
