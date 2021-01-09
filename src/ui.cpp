@@ -5,6 +5,8 @@
 #include <algorithm>
 #include <cctype>
 #include <locale>
+#include <fmt/core.h>
+#include <fmt/color.h>
 
 // this is copied from https://stackoverflow.com/a/217605/5272201
 static inline void ltrim(std::string &s)
@@ -31,43 +33,73 @@ void print_table(const std::vector<std::map<std::string, std::string>> &table)
     size_t i = 0;
     for (const auto &row : table)
     {
-        std::cout << "----- " << std::setw(3) << i++ << std::endl;
+        fmt::print("----- {:>3} -----\n", i++);
         for (const auto &[name, value] : row)
         {
-            std::cout << std::setw(12) << name << " : " << value << std::endl;
+            fmt::print("{:>12} : {}\n", name, value);
         }
     }
 }
 
 int input_number(const char *prompt)
 {
-    return std::stoi(input_string(prompt));
+    while (true)
+    {
+        try
+        {
+            return std::stoi(input_string(prompt));
+        }
+        catch (const std::exception &e)
+        {
+            fmt::print(fg(fmt::color::red), "Invalid input.\n");
+        }
+    }
 }
 unsigned int input_unsigned(const char *prompt)
 {
-    return std::stoul(input_string(prompt));
+    while (true)
+    {
+        try
+        {
+            return std::stoul(input_string(prompt));
+        }
+        catch (const std::exception &e)
+        {
+            fmt::print(fg(fmt::color::red), "Invalid input.\n");
+        }
+    }
 }
 std::string input_string(const char *prompt)
 {
-    if (prompt != nullptr && prompt != '\0')
-    {
-        std::cout << prompt << std::endl;
-    }
-    std::cout << "> " << std::flush;
+    if (prompt != nullptr && *prompt != '\0')
+        fmt::print(fmt::emphasis::bold | fg(fmt::color::dark_orange), "{}", prompt);
+    fmt::print(fmt::emphasis::bold | fg(fmt::color::dark_orange), "> ");
     std::string buf;
     std::getline(std::cin, buf);
+    if (buf.empty() && std::cin.eof())
+    {
+        fmt::print(fg(fmt::color::red), "Input reached EOF.\n");
+        exit(1);
+    }
     trim(buf);
     return buf;
 }
 
+/**
+ * @brief  从给定的命令列表中令用户选择一个
+ * @note   会持续运行直到用户输入有效的命令
+ * @param  commands: 命令和解释的对
+ * @retval 命令
+ */
 std::string select_command(std::initializer_list<std::pair<const char *, const char *>> commands)
 {
     while (true)
     {
-        std::cout << "Choose one of the following:" << std::endl;
+        fmt::print(fg(fmt::color::blue), "Choose one of the following:\n");
         for (const auto &[command, desc] : commands)
         {
-            std::cout << command << " - " << desc << std::endl;
+            fmt::print(fmt::emphasis::underline | fg(fmt::color::dark_orange), "{}", command);
+            fmt::print(" - {}\n", desc);
         }
         auto input = input_string(nullptr);
         for (const auto &[command, _] : commands)
@@ -77,6 +109,6 @@ std::string select_command(std::initializer_list<std::pair<const char *, const c
                 return input;
             }
         }
-        std::cout << "Invalid input, try again." << std::endl;
+        fmt::print(fg(fmt::color::red), "Invalid input, try again.\n");
     }
 }

@@ -1,8 +1,8 @@
 #include "mysqlclient.h"
 
 MySQLClient::MySQLClient(const char *host, unsigned int port,
-                const char *user, const char *password,
-                const char *database)
+                         const char *user, const char *password,
+                         const char *database)
 {
     mysql_init(&mysql);
     this->host = host;
@@ -13,7 +13,8 @@ MySQLClient::MySQLClient(const char *host, unsigned int port,
     openConnection();
 }
 
-MySQLClient::~MySQLClient() {
+MySQLClient::~MySQLClient()
+{
     releaseConnection();
 }
 
@@ -40,7 +41,7 @@ std::vector<std::map<std::string, std::string>> MySQLClient::query(const char *s
     unsigned int size = mysql_field_count(&mysql);
     MYSQL_FIELD *fields = mysql_fetch_fields(result);
     MYSQL_ROW row;
-    while (row = mysql_fetch_row(result))
+    while ((row = mysql_fetch_row(result)) != nullptr)
     {
         std::map<std::string, std::string> temp;
         for (int i = 0; i < size; ++i)

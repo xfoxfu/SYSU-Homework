@@ -750,7 +750,8 @@
      CLIENT_ZSTD_COMPRESSION_ALGORITHM))
 
 /** The status flags are a bit-field */
-enum SERVER_STATUS_flags_enum {
+enum SERVER_STATUS_flags_enum
+{
   /**
     Is raised when a multi-statement transaction
     has been started, either explicitly, by means
@@ -848,7 +849,8 @@ struct Vio;
 #define MAX_CHAR_WIDTH 255      /**< Max length for a CHAR colum */
 #define MAX_BLOB_WIDTH 16777216 /**< Default width for blob */
 
-typedef struct NET {
+typedef struct NET
+{
   MYSQL_VIO vio;
   unsigned char *buff, *buff_end, *write_pos, *read_pos;
   my_socket fd; /* For Perl DBI/dbd */
@@ -939,7 +941,8 @@ typedef struct NET {
 
   @note ::SHUTDOWN_DEFAULT does not respect the growing property, but it's ok.
 */
-enum mysql_enum_shutdown_level {
+enum mysql_enum_shutdown_level
+{
   SHUTDOWN_DEFAULT = 0,
   /** Wait for existing connections to finish */
   SHUTDOWN_WAIT_CONNECTIONS = MYSQL_SHUTDOWN_KILLABLE_CONNECT,
@@ -958,14 +961,16 @@ enum mysql_enum_shutdown_level {
 };
 /** @}*/
 
-enum enum_resultset_metadata {
+enum enum_resultset_metadata
+{
   /** No metadata will be sent. */
   RESULTSET_METADATA_NONE = 0,
   /** The server will send all metadata. */
   RESULTSET_METADATA_FULL = 1
 };
 
-enum enum_cursor_type {
+enum enum_cursor_type
+{
   CURSOR_TYPE_NO_CURSOR = 0,
   CURSOR_TYPE_READ_ONLY = 1,
   CURSOR_TYPE_FOR_UPDATE = 2,
@@ -973,7 +978,8 @@ enum enum_cursor_type {
 };
 
 /** options for ::mysql_options() */
-enum enum_mysql_set_option {
+enum enum_mysql_set_option
+{
   MYSQL_OPTION_MULTI_STATEMENTS_ON,
   MYSQL_OPTION_MULTI_STATEMENTS_OFF
 };
@@ -986,11 +992,12 @@ enum enum_mysql_set_option {
     - session_state_type shouldn't go past 255 (i.e. 1-byte boundary).
     - Modify the definition of ::SESSION_TRACK_END when a new member is added.
 */
-enum enum_session_state_type {
-  SESSION_TRACK_SYSTEM_VARIABLES, /**< Session system variables */
-  SESSION_TRACK_SCHEMA,           /**< Current schema */
-  SESSION_TRACK_STATE_CHANGE,     /**< track session state changes */
-  SESSION_TRACK_GTIDS,            /**< See also: session_track_gtids */
+enum enum_session_state_type
+{
+  SESSION_TRACK_SYSTEM_VARIABLES,            /**< Session system variables */
+  SESSION_TRACK_SCHEMA,                      /**< Current schema */
+  SESSION_TRACK_STATE_CHANGE,                /**< track session state changes */
+  SESSION_TRACK_GTIDS,                       /**< See also: session_track_gtids */
   SESSION_TRACK_TRANSACTION_CHARACTERISTICS, /**< Transaction chistics */
   SESSION_TRACK_TRANSACTION_STATE            /**< Transaction state */
 };
@@ -1025,13 +1032,14 @@ void my_net_set_write_timeout(struct NET *net, unsigned int timeout);
 void my_net_set_read_timeout(struct NET *net, unsigned int timeout);
 void my_net_set_retry_count(struct NET *net, unsigned int retry_count);
 
-struct rand_struct {
+struct rand_struct
+{
   unsigned long seed1, seed2, max_value;
   double max_value_dbl;
 };
 
 /* Include the types here so existing UDFs can keep compiling */
-#include <mysql/udf_registration_types.h>
+#include "mysql/udf_registration_types.h"
 
 /**
   @addtogroup group_cs_compresson_constants Constants when using compression
@@ -1079,9 +1087,10 @@ bool generate_sha256_scramble(unsigned char *dst, size_t dst_size,
 
 // extern "C" since it is an (undocumented) part of the libmysql ABI.
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
-char *get_tty_password(const char *opt_message);
+  char *get_tty_password(const char *opt_message);
 #ifdef __cplusplus
 }
 #endif
@@ -1092,10 +1101,11 @@ const char *mysql_errno_to_sqlstate(unsigned int mysql_errno);
 
 // Need to be extern "C" for the time being, due to memcached.
 #ifdef __cplusplus
-extern "C" {
+extern "C"
+{
 #endif
-bool my_thread_init(void);
-void my_thread_end(void);
+  bool my_thread_init(void);
+  void my_thread_end(void);
 #ifdef __cplusplus
 }
 #endif

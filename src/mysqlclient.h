@@ -19,6 +19,7 @@ private:
     MYSQL mysql;
 
 public:
+    MySQLClient() {}
     // 建立连接
     MySQLClient(const char *host, unsigned int port,
                 const char *user, const char *password,
