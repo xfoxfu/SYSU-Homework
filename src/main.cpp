@@ -1,6 +1,13 @@
 #include <iostream>
+#include "ui.hpp"
+#include <fmt/core.h>
 
-int main(int, char **)
+int main(int argc, char **argv)
 {
-    std::cout << "Hello, world!\n";
+    std::string command = select_command(
+        {
+            {"test1", "This is description"},
+            {"test2", "This is description 2"},
+        });
+    return 0;
 }

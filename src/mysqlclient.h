@@ -1,7 +1,7 @@
 #ifndef MYSQL_CLIENT_H
 #define MYSQL_CLIENT_H
 
-#include "libmysql/mysql.h"
+#include "mysql.h"
 #include <iostream>
 #include <stdexcept>
 #include <map>
