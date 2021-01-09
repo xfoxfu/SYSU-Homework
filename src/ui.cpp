@@ -49,7 +49,7 @@ unsigned int input_unsigned(const char *prompt)
 }
 std::string input_string(const char *prompt)
 {
-    if (prompt != nullptr && prompt != '\0')
+    if (prompt != nullptr && prompt[0] != '\0')
     {
         std::cout << prompt << std::endl;
     }
