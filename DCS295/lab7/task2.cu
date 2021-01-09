@@ -1,140 +1,214 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include"matrix.h"
-#include <cudnn.h>
-#include <omp.h>
-#include <vector>
+#include "errors.hpp"
+#include "matrix.hpp"
+#include <cassert>
 #include <chrono>
-#define IDX2C(i,j,ld) (((i)*(ld))+(j))
-template<typename T>
-__global__ void matrix_mult(T* a, T* b, T* c, int Acol, int Arow, int Brow)
+#include <cudnn.h>
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+#include <vector>
+
+#define CUDA_GUARD(E)                                \
+	{                                                \
+		auto _status = E;                            \
+		if (_status != cudaSuccess)                  \
+		{                                            \
+			fmt::print(stderr,                       \
+					   fg(fmt::color::red),          \
+					   "Error: {}:{} ({}) {}",       \
+					   __FILE__, __LINE__, #E,       \
+					   cudaGetErrorString(_status)); \
+			exit(EXIT_FAILURE);                      \
+		}                                            \
+	}
+
+#define POS(m, n, p, i, j, k) \
+	((i) * (n) * (p) + (j) * (p) + (k))
+
+__global__ void matrix_mult(Matrix::data_t *lhs, Matrix::data_t *rhs, Matrix::data_t *out, uint32_t M, uint32_t N, uint32_t K)
+{
+	const uint32_t i = threadIdx.x + blockDim.x * blockIdx.x;
+	const uint32_t j = threadIdx.y + blockDim.y * blockIdx.y;
+	Matrix::data_t sum = 0;
+	if (i < M && j < K)
+	{
+		for (uint32_t k = 0; k < N; k++)
+		{
+			sum += lhs[i * N + k]	 // lhs(i, k)
+				   * rhs[k * K + j]; // rhs(k, j)
+		}
+		out[i * K + j] = sum; // out(i, j)
+	}
+}
+
+Matrix product_cuda(const Matrix &L, const Matrix &R, size_t bs_x, size_t bs_y)
+{
+	assert(L.p() == 1);
+	assert(R.p() == 1);
+	assert(L.n() == R.m());
+
+	Matrix O(L.m(), R.n(), 1);
+	// allocate device memory
+	Matrix::data_t *dev_l, *dev_r, *dev_o;
+	CUDA_GUARD(cudaMalloc(&dev_l, L.data_size()));
+	CUDA_GUARD(cudaMalloc(&dev_r, R.data_size()));
+	CUDA_GUARD(cudaMalloc(&dev_o, O.data_size()));
+	// copy matrix to device
+	cudaMemcpy(dev_l, L._data, L.data_size(), cudaMemcpyHostToDevice);
+	cudaMemcpy(dev_r, R._data, R.data_size(), cudaMemcpyHostToDevice);
+	// perform product
+	dim3 grid(O.m() / bs_x, O.n() / bs_y);
+	dim3 block(bs_x, bs_y);
+	matrix_mult<<<grid, block>>>(dev_l, dev_r, dev_o, L.m(), L.n(), R.n());
+	// copy result back
+	CUDA_GUARD(cudaMemcpy(O._data, dev_o, O.data_size(), cudaMemcpyDeviceToHost));
+	// free memory
+	CUDA_GUARD(cudaFree(dev_l));
+	CUDA_GUARD(cudaFree(dev_r));
+	CUDA_GUARD(cudaFree(dev_o));
+
+	return O;
+}
+
+__global__ void dev_im2col(Matrix::data_t *in, Matrix::data_t *ker, Matrix::data_t *out,
+						   uint32_t in_m, uint32_t in_n, uint32_t in_p,
+						   uint32_t ker_m, uint32_t ker_n, uint32_t ker_p,
+						   uint32_t out_m, uint32_t out_n, uint32_t out_p,
+						   uint32_t stride)
 {
 	const int x = threadIdx.x + blockDim.x * blockIdx.x;
 	const int y = threadIdx.y + blockDim.y * blockIdx.y;
-	const auto index = x * Brow + y;
-	T sum = 0;
-	if (x < Acol && y < Brow) {
-		for (int k = 0; k < Arow; k++)
-		{
-			sum += a[x * Arow + k] * b[k * Brow + y];
-		}
-		c[index] = sum;
-	}
-}
-
-template<typename T>
-T* gemm(T* a, T* b, int Acol, int Arow, int Brow, int THREAD_X = 128, int THREAD_Y = 1)
-{
-
-	const int testsize = Acol * Brow;
-	auto* c = new T[testsize];
-	T* d_a, * d_b, * d_c;
-
-	cudaMalloc(&d_a, sizeof(T) * Acol * Arow);
-	cudaMalloc(&d_b, sizeof(T) * Arow * Brow);
-	cudaMalloc(&d_c, sizeof(T) * testsize);
-	cudaMemcpy(d_a, a, sizeof(T) * Acol * Arow, cudaMemcpyHostToDevice);
-	cudaMemcpy(d_b, b, sizeof(T) * Arow * Brow, cudaMemcpyHostToDevice);
-	dim3 griddim(Acol / THREAD_X, Brow / THREAD_Y);
-	dim3 threadsPerBlock(THREAD_X, THREAD_Y);
-	matrix_mult << <griddim, threadsPerBlock >> > (d_a, d_b, d_c, Acol, Arow, Brow);
-	cudaMemcpy(c, d_c, sizeof(T) * testsize, cudaMemcpyDeviceToHost);
-	//string filename = "x_" + to_string(THREAD_X) + "_y_" + to_string(THREAD_Y) + "_N_" + to_string(Acol) + ".txt";
-	//ofstream outfileC(filename.c_str());
-	//print(outfileC, c, Acol, Brow);
-	//outfileC.close();
-
-	cudaFree(d_a);
-	cudaFree(d_b);
-	cudaFree(d_c);
-	return c;
-}
-
-template<typename T>
-void padding(vector<T*>& mat, int& col, int& row, int pad_size, int channels) {
-	col += 2 * pad_size;
-	row += 2 * pad_size;
-	vector<T*>input(channels);
-#pragma omp parallel for
-	for (int i = 0; i < channels; i++)
+	if (x < out_m && y < out_n)
 	{
-		input[i] = new T[col * row];
-		memset(&input[i][0], 0, col * row * sizeof(T));
-		for (int k = pad_size; k < col - pad_size; k++) {
-			for (int j = pad_size; j < row - pad_size; j++) {
-				input[i][IDX2C(k, j, row)] = mat[i][IDX2C(k - pad_size, j - pad_size, row - 2 * pad_size)];
-			}
-		}
-		delete[]mat[i];
-	}
-	mat = input;
-}
-
-template<typename T>
-T* im2col(vector<T*>& mat, int col, int row, int kernel_size, int pad_size, int channels, int stride, int& res_col, int& res_row) {
-	padding(mat, col, row, pad_size, channels);
-	int height = (col - kernel_size) / stride + 1;
-	int width = (row - kernel_size) / stride + 1;
-	int elems = channels * kernel_size * kernel_size;
-	res_col = elems; res_row = height * width;
-	T* res = new T[res_col * res_row];
-#pragma omp parallel for
-	for (int c = 0; c < elems; c++)
-	{
-		int w_offset = c % kernel_size;
-		int h_offset = (c / kernel_size) % kernel_size;
-		int c_offset = c / kernel_size / kernel_size;
-		for (int i = 0; i < height; i++)
+		for (uint32_t i = 0; i < ker_m; i++)
 		{
-			for (int j = 0; j < width; j++)
+			for (uint32_t j = 0; j < ker_n; j++)
 			{
-				int im_col = h_offset + i * stride;
-				int im_row = w_offset + j * stride;
-				res[IDX2C((height * c + i), j, width)] = mat[c_offset][IDX2C(im_col, im_row, row)];
+				uint32_t bi = x * stride;
+				uint32_t bj = y * stride;
+				int32_t di = i - ker_m / 2;
+				int32_t dj = j - ker_n / 2;
+				for (uint32_t k = 0; k < ker_p; k++)
+				{
+					uint32_t w = i * ker_n * ker_p + j * ker_p + k;
+					if ((int32_t)bi + di >= 0 && (int32_t)bi + di < in_m &&
+						(int32_t)bj + dj >= 0 && (int32_t)bj + dj < in_n)
+					{
+						out[POS(out_m * out_n, ker_m * ker_n * ker_p, 1, x * out_n + y, w, 0)] =
+							in[POS(in_m, in_n, in_p, bi + di, bj + dj, k)];
+					}
+					else
+					{
+						out[POS(out_m * out_n, ker_m * ker_n * ker_p, 1, x * out_n + y, w, 0)] = 0;
+					}
+				}
 			}
 		}
 	}
-	return res;
 }
 
-int main(int argc, char* argv[]) {
-	if (argc != 7) {
-		fprintf(stderr, "usage: TARGET [in_channels] [height] [width] [stride] [thread.x] [thread.y]\n");
-		return -1;
-	}
-	int col = atoi(argv[2]),
-		row = atoi(argv[3]),
-		kernel_size = 3,
-		stride = atoi(argv[4]),
-		n_channels = atoi(argv[1]),
-		thread_x = atoi(argv[5]), thread_y = atoi(argv[6]);
+Matrix im2col(const Matrix &input, const Matrix &kernel, size_t stride, size_t bs_x, size_t bs_y)
+{
+	size_t out_n = (input.n() + ((kernel.n() - 1) / 2) * 2 - kernel.n()) / stride + 1;
+	size_t out_m = (input.m() + ((kernel.m() - 1) / 2) * 2 - kernel.m()) / stride + 1;
+	Matrix out(out_m * out_n, kernel.m() * kernel.n() * kernel.p(), 1);
 
+	// alloc dev mem
+	Matrix::data_t *dev_in;
+	CUDA_GUARD(cudaMalloc(&dev_in, input.data_size()));
+	Matrix::data_t *dev_out;
+	CUDA_GUARD(cudaMalloc(&dev_out, out.data_size()));
+	// copy mem
+	CUDA_GUARD(cudaMemcpy(dev_in, input._data, input.data_size(), cudaMemcpyHostToDevice));
+	// compute
+	dim3 grid(out.m() / bs_x, out.n() / bs_y);
+	dim3 block(bs_x, bs_y);
+	dev_im2col<<<grid, block>>>(dev_in, nullptr, dev_out,
+								input.m(), input.n(), input.p(),
+								kernel.m(), kernel.n(), kernel.p(),
+								out_m, out_n, 1,
+								stride);
+	// copy back
+	CUDA_GUARD(cudaMemcpy(out._data, dev_out, out.data_size(), cudaMemcpyDeviceToHost));
+	// free
+	CUDA_GUARD(cudaFree(dev_in));
 
-	int pad_size;
-	dim3 numBlocks;
-	pad_size = 0;
-	//pad_size = (kernel_size-1) / 2;
-	auto mat = getMat<float>(txt, col, row, n_channels);
-	int Acol, Arow;
-	vector<float> kernelVec = { 0, 1, 0, 1, -4, 1, 0, 1, 0 };
-	float* kernel = new float[kernel_size * kernel_size * n_channels];
-	for (int i = 0; i < n_channels; i++)
+	return out;
+}
+
+Matrix conv_2d(const Matrix &input, Matrix &kernel, size_t stride, size_t bs_x, size_t bs_y)
+{
+	size_t out_n = (input.n() + ((kernel.n() - 1) / 2) * 2 - kernel.n()) / stride + 1;
+	size_t out_m = (input.m() + ((kernel.m() - 1) / 2) * 2 - kernel.m()) / stride + 1;
+
+	Matrix in_rot = im2col(input, kernel, stride, bs_x, bs_y);
+	kernel.resize(kernel.m() * kernel.n() * kernel.p(), 1, 1);
+	Matrix out = product_cuda(in_rot, kernel, bs_x, bs_y);
+	out.resize(out_m, out_n, 1);
+	return out;
+}
+
+int main(int argc, char *argv[])
+{
+	if (argc <= 6)
 	{
-		memcpy(kernel + kernel_size * kernel_size * i, &kernelVec[0], sizeof(kernelVec[0]) * kernelVec.size());
-		//print(std::cout, mat[i], col, row);
+		fmt::print(stderr, fg(fmt::color::red),
+				   "usage: {} <height> <width> <depth> <stride> <thread.x> <thread.y> [--output]\n", argv[0]);
+		return CNN_INVALID_ARGUMENTS;
 	}
-	auto timeStart = std::chrono::high_resolution_clock::now();
+	size_t height = std::stoull(argv[1]);
+	size_t width = std::stoull(argv[2]);
+	constexpr size_t depth = 3;
+	constexpr size_t filter_size = 3;
+	constexpr size_t filter_count = 3;
+	size_t stride = std::stoull(argv[4]);
+	size_t thread_x = std::stoull(argv[5]);
+	size_t thread_y = std::stoull(argv[6]);
+	bool has_output = false;
+	if (argc > 7 && std::strcmp(argv[7], "--output") == 0)
+	{
+		has_output = true;
+	}
 
-	auto a = im2col(mat, col, row, kernel_size, pad_size, n_channels, stride, Acol, Arow);
-	//print(std::cout, a, Acol, Arow);
-	//print(std::cout, kernel, 1, Acol);
+	fmt::print(fg(fmt::color::blue), "generating input\n");
+	Matrix input = Matrix(height, width, depth, true);
+	if (has_output)
+	{
+		fmt::print("{}\n", input);
+	}
+	fmt::print(fg(fmt::color::blue), "generating kernel\n");
+	Matrix kernels[filter_count];
+	for (size_t i = 0; i < filter_count; i++)
+	{
+		kernels[i] = Matrix(filter_size, filter_size, filter_size, true);
+		if (has_output)
+		{
+			fmt::print("{}\n", kernels[i]);
+		}
+	}
 
-	auto res = gemm(kernel, a, 1, Acol, Arow, thread_x, thread_y);
-	auto timeEnd = std::chrono::high_resolution_clock::now();
-	auto passedTime = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
-	fprintf(stdout, "im2col Done: %.5f (ms)\n", passedTime);
+	// perform convolution
+	auto start = std::chrono::high_resolution_clock::now();
 
-	int res_col = (col - kernel_size) / stride + 1;
-	int res_row = (row - kernel_size) / stride + 1;
-	//print(std::cout, res, res_col, res_row);
+	fmt::print(fg(fmt::color::blue), "compute conv_2d x{}\n", filter_count);
+	Matrix R[filter_count];
+	for (size_t i = 0; i < filter_count; i++)
+	{
+		R[i] = conv_2d(input, kernels[i], stride, thread_x, thread_y);
+	}
+
+	auto end = std::chrono::high_resolution_clock::now();
+	std::chrono::duration<double, std::milli> diff = end - start;
+	fmt::print(fg(fmt::color::orange), "time: {} ms\n", diff.count());
+	if (has_output)
+	{
+		for (size_t i = 0; i < filter_count; i++)
+		{
+			fmt::print("{}\n", R[i]);
+		}
+	}
+
+	return CNN_OK;
 }

@@ -1,126 +1,165 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include"matrix.h"
-#include <cudnn.h>
-#include <vector>
+#include "errors.hpp"
+#include "matrix.hpp"
 #include <chrono>
-#define IDX2C(i,j,ld) (((i)*(ld))+(j))
-#define CUDA_CALL(f) { \
-  cudaError_t err = (f); \
-  if (err != cudaSuccess) { \
-    std::cout \
-        << __LINE__ <<":Error occurred: " << err<< std::endl; \
-    std::exit(1); \
-  } \
-}
+#include <cudnn.h>
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+#include <vector>
 
-#define CUDNN_CALL(f) { \
-  cudnnStatus_t err = (f); \
-  if (err != CUDNN_STATUS_SUCCESS) { \
-    std::cout \
-        << "    Error occurred: " << err << std::endl; \
-    std::exit(1); \
-  } \
-}
-template<typename T>
-void padding(vector<T*>& mat, int& col, int& row, int pad_size, int channels) {
-    col += 2 * pad_size;
-    row += 2 * pad_size;
-    vector<T*>input(channels);
-#pragma omp parallel for
-    for (int i = 0; i < channels; i++)
-    {
-        input[i] = new T[col * row];
-        memset(&input[i][0], 0, col * row * sizeof(T));
-        for (int k = pad_size; k < col - pad_size; k++) {
-            for (int j = pad_size; j < row - pad_size; j++) {
-                input[i][IDX2C(k, j, row)] = mat[i][IDX2C(k - pad_size, j - pad_size, row - 2 * pad_size)];
-            }
-        }
-        delete[]mat[i];
+#define CUDA_GUARD(E)                                \
+    {                                                \
+        auto _status = E;                            \
+        if (_status != cudaSuccess)                  \
+        {                                            \
+            fmt::print(stderr,                       \
+                       fg(fmt::color::red),          \
+                       "Error: {}:{} ({}) {}",       \
+                       __FILE__, __LINE__, #E,       \
+                       cudaGetErrorString(_status)); \
+            exit(EXIT_FAILURE);                      \
+        }                                            \
     }
-    mat = input;
-}
 
-template<typename T>
-__global__ void conv2d(T* mat, int* kernel, T* res, int col, int row, int stride, int kernel_size, int res_col, int res_row) {
-    const int i = threadIdx.x + blockDim.x * blockIdx.x;
-    const int j = threadIdx.y + blockDim.y * blockIdx.y;
-    T sum = 0;
-    if (i < res_col && j < res_row) {
-        for (int x = 0; x < kernel_size; x++)
+#define POS(m, n, p, i, j, k) \
+    ((i) * (n) * (p) + (j) * (p) + (k))
+
+__global__ void dev_conv2d(Matrix::data_t *in, Matrix::data_t *ker, Matrix::data_t *out,
+                           uint32_t in_m, uint32_t in_n, uint32_t in_p,
+                           uint32_t ker_m, uint32_t ker_n, uint32_t ker_p,
+                           uint32_t out_m, uint32_t out_n, uint32_t out_p,
+                           uint32_t stride)
+{
+    const int x = threadIdx.x + blockDim.x * blockIdx.x;
+    const int y = threadIdx.y + blockDim.y * blockIdx.y;
+    Matrix::data_t sum = 0;
+    if (x < out_m && y < out_n)
+    {
+        for (uint32_t i = 0; i < ker_m; i++)
         {
-            for (int y = 0; y < kernel_size; y++)
+            for (uint32_t j = 0; j < ker_n; j++)
             {
-                sum += mat[IDX2C(i * stride + x, j * stride + y, row)] * kernel[IDX2C(x, y, kernel_size)];
+                uint32_t bi = x * stride;
+                uint32_t bj = y * stride;
+                int32_t di = i - ker_m / 2;
+                int32_t dj = j - ker_n / 2;
+                if ((int32_t)bi + di >= 0 && (int32_t)bi + di < in_m &&
+                    (int32_t)bj + dj >= 0 && (int32_t)bj + dj < in_n)
+                {
+                    for (uint32_t k = 0; k < ker_p; k++)
+                    {
+                        sum +=
+                            in[POS(in_m, in_n, in_p, bi + di, bj + dj, k)] *
+                            ker[POS(ker_m, ker_n, ker_p, i, j, k)];
+                    }
+                }
             }
         }
-        res[IDX2C(i, j, res_row)] = sum;
+        out[POS(out_m, out_n, out_p, x, y, 0)] = sum;
     }
 }
 
-int main(int argc, char* argv[]) {
-    if (argc != 7) {
-        fprintf(stderr, "usage: TARGET [in_channels] [height] [width] [stride] [thread.x] [thread.y]\n");
-        return -1;
-    }
-    int col = atoi(argv[2]),
-        row = atoi(argv[3]),
-        kernel_size = 3,
-        stride = atoi(argv[4]),
-        n_channels = atoi(argv[1]),
-        thread_x = atoi(argv[5]), thread_y = atoi(argv[6]);
+Matrix conv_2d(const Matrix &input, const Matrix &kernel, size_t stride, size_t bs_x, size_t bs_y)
+{
+    size_t out_n = (input.n() + ((kernel.n() - 1) / 2) * 2 - kernel.n()) / stride + 1;
+    size_t out_m = (input.m() + ((kernel.m() - 1) / 2) * 2 - kernel.m()) / stride + 1;
+    Matrix out(out_m, out_n, 1);
 
-    int pad_size = 0;
-    int res_col;
-    int res_row;
-    dim3 numBlocks;
-    //pad_size = (kernel_size - 1) / 2;
-    auto threadsPerBlock = dim3(thread_x, thread_y);
-    auto input = getMat<float>(r, col, row, n_channels);
-    vector<float*> d_input(n_channels, nullptr);
-    vector<float*> output(n_channels, nullptr), d_output(n_channels, nullptr);
-    vector<int*> d_kernel(n_channels, nullptr);
-    vector<vector<int>>kernel(n_channels, vector<int>(kernel_size * kernel_size));
-    padding(input, col, row, pad_size, n_channels);
-    res_col = (col - kernel_size) / stride + 1;
-    res_row = (row - kernel_size) / stride + 1;
-    for (int i = 0; i < n_channels; i++)
+    // allocate device memory
+    Matrix::data_t *dev_in;
+    CUDA_GUARD(cudaMalloc(&dev_in, input.data_size()));
+    Matrix::data_t *dev_kernel;
+    CUDA_GUARD(cudaMalloc(&dev_kernel, kernel.data_size()));
+    Matrix::data_t *dev_out;
+    CUDA_GUARD(cudaMalloc(&dev_out, out.data_size()));
+
+    // copy input
+    CUDA_GUARD(cudaMemcpy(dev_in, input._data, input.data_size(), cudaMemcpyHostToDevice));
+    CUDA_GUARD(cudaMemcpy(dev_kernel, kernel._data, kernel.data_size(), cudaMemcpyHostToDevice));
+
+    // compute
+    dim3 grid(out.m() / bs_x, out.n() / bs_y);
+    dim3 block(bs_x, bs_y);
+    dev_conv2d<<<grid, block>>>(dev_in, dev_kernel, dev_out,
+                                input.m(), input.n(), input.p(),
+                                kernel.m(), kernel.n(), kernel.p(),
+                                out.m(), out.n(), out.p(),
+                                stride);
+
+    // copy result
+    CUDA_GUARD(cudaMemcpy(out._data, dev_out, out.data_size(), cudaMemcpyDeviceToHost));
+
+    // free device memory
+    CUDA_GUARD(cudaFree(dev_in));
+    CUDA_GUARD(cudaFree(dev_kernel));
+    CUDA_GUARD(cudaFree(dev_out));
+
+    // sync
+    CUDA_GUARD(cudaDeviceSynchronize());
+    return out;
+}
+
+int main(int argc, char *argv[])
+{
+    if (argc <= 6)
     {
-
-        //print(std::cout, input[i], col, row );
-
-        numBlocks = dim3(res_col, res_row);
-
-        output[i] = new float[res_col * res_row];
-        kernel[i] = { 0,1,0,1,-4,1,0,1,0 };
-        CUDA_CALL(cudaMalloc(&d_input[i], col * row * sizeof(d_input[0][0])));
-        CUDA_CALL(cudaMalloc(&d_output[i], res_col * res_row * sizeof(d_output[0][0])));
-        CUDA_CALL(cudaMalloc(&d_kernel[i], kernel_size * kernel_size * sizeof(kernel[0][0])));
-        CUDA_CALL(cudaMemcpy(d_input[i], input[i], sizeof(float) * col * row, cudaMemcpyHostToDevice));
-        CUDA_CALL(cudaMemcpy(d_kernel[i], &kernel[i][0], sizeof(int) * kernel_size * kernel_size, cudaMemcpyHostToDevice));
+        fmt::print(stderr, fg(fmt::color::red),
+                   "usage: {} <height> <width> <depth> <stride> <thread.x> <thread.y> [--output]\n", argv[0]);
+        return CNN_INVALID_ARGUMENTS;
     }
-
-    auto timeStart = std::chrono::high_resolution_clock::now();
-
-    for (int i = 0; i < n_channels; i++)
+    size_t height = std::stoull(argv[1]);
+    size_t width = std::stoull(argv[2]);
+    constexpr size_t depth = 3;
+    constexpr size_t filter_size = 3;
+    constexpr size_t filter_count = 3;
+    size_t stride = std::stoull(argv[4]);
+    size_t thread_x = std::stoull(argv[5]);
+    size_t thread_y = std::stoull(argv[6]);
+    bool has_output = false;
+    if (argc > 7 && std::strcmp(argv[7], "--output") == 0)
     {
-        conv2d << <numBlocks, threadsPerBlock >> > (d_input[i], d_kernel[i], d_output[i], col, row, stride, kernel_size, res_col, res_row);
-    }
-    auto timeEnd = std::chrono::high_resolution_clock::now();
-
-    for (int i = 0; i < n_channels; i++) {
-        CUDA_CALL(cudaMemcpy(output[i], d_output[i], sizeof(float) * res_col * res_row, cudaMemcpyDeviceToHost));
-        //print(std::cout, output[i], res_col, res_row);
+        has_output = true;
     }
 
-    auto passedTime = std::chrono::duration<float, std::milli>(timeEnd - timeStart).count();
-    fprintf(stdout, "Conv2d Done: %.5f (ms)\n", passedTime);
-
-    for (int i = 0; i < 3; i++) {
-        cudaFree(&d_input[i]);
-        cudaFree(&d_output[i]);
-        cudaFree(&d_kernel[i]);
+    fmt::print(fg(fmt::color::blue), "generating input\n");
+    Matrix input = Matrix(height, width, depth, true);
+    if (has_output)
+    {
+        fmt::print("{}\n", input);
     }
-    //save_img("2.png", output, res_col, res_row);
+    fmt::print(fg(fmt::color::blue), "generating kernel\n");
+    Matrix kernels[filter_count];
+    for (size_t i = 0; i < filter_count; i++)
+    {
+        kernels[i] = Matrix(filter_size, filter_size, filter_size, true);
+        if (has_output)
+        {
+            fmt::print("{}\n", kernels[i]);
+        }
+    }
+
+    // perform convolution
+    auto start = std::chrono::high_resolution_clock::now();
+
+    fmt::print(fg(fmt::color::blue), "compute conv_2d x{}\n", filter_count);
+    Matrix R[filter_count];
+    for (size_t i = 0; i < filter_count; i++)
+    {
+        R[i] = conv_2d(input, kernels[i], stride, thread_x, thread_y);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> diff = end - start;
+    fmt::print(fg(fmt::color::orange), "time: {} ms\n", diff.count());
+    if (has_output)
+    {
+        for (size_t i = 0; i < filter_count; i++)
+        {
+            fmt::print("{}\n", R[i]);
+        }
+    }
+
+    return CNN_OK;
 }

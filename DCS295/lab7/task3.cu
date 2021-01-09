@@ -1,134 +1,192 @@
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
-#include"matrix.h"
-#include <cudnn.h>
-#include <vector>
+#include "errors.hpp"
+#include "matrix.hpp"
+#include <cassert>
 #include <chrono>
-#include <initializer_list>
+#include <cudnn.h>
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <fmt/ostream.h>
+#include <vector>
 
-
-template<typename T>
-std::ostream& print(std::ostream& os, T* mat, int n, int c, int h, int w) {
-    std::vector<T> buffer(n * c * h * w);
-    cudaMemcpy(buffer.data(), mat, n * c * h * w * sizeof(T), cudaMemcpyDeviceToHost);
-    int a = 0;
-    for (int i = 0; i < n; ++i) {
-        for (int j = 0; j < c; ++j) {
-            os << "n = " << i << ", c = " << j << ":" << std::endl;
-            print(os, &buffer[a], h, w);
-            a += h * w;
-        }
+#define CUDA_GUARD(E)                                \
+    {                                                \
+        auto _status = E;                            \
+        if (_status != cudaSuccess)                  \
+        {                                            \
+            fmt::print(stderr,                       \
+                       fg(fmt::color::red),          \
+                       "Error: {}:{} ({}) {}\n",     \
+                       __FILE__, __LINE__, #E,       \
+                       cudaGetErrorString(_status)); \
+            exit(EXIT_FAILURE);                      \
+        }                                            \
     }
-}
-
-template<typename T>
-T* getKernelGptr(std::initializer_list<T> filter, int filt_c, int filt_h, int filt_w) {
-    vector<T>kernel(filter);
-    T* filt_data;
-    cudaMalloc(&filt_data, filt_c * filt_h * filt_w * sizeof(T));
-    for (int i = 0; i < filt_c; i++)
-        cudaMemcpy(filt_data+ filt_h * filt_w * i, &kernel[0], sizeof(kernel[0]) * kernel.size(), cudaMemcpyHostToDevice);
-    return filt_data;
-}
-template<typename T>
-T* getInputGptr(vector<T*> &input, int in_c, int in_h, int in_w) {
-    T* in_data;
-    cudaMalloc(&in_data, in_c * in_h * in_w * sizeof(T));
-    for (int i = 0; i < in_c; i++)
-        cudaMemcpy(in_data + in_h * in_w * i, &input[i][0], in_w * in_h * sizeof(T), cudaMemcpyHostToDevice);
-    return in_data;
-}
-
-int main(int argc, char* argv[]){
-    if (argc != 6) {
-        fprintf(stderr, "usage: TARGET [in_channels] [height] [width] [stride] [padding]\n");
-        return -1;
+#define CUDNN_GUARD(E)                                \
+    {                                                 \
+        auto _status = E;                             \
+        if (_status != CUDNN_STATUS_SUCCESS)          \
+        {                                             \
+            fmt::print(stderr,                        \
+                       fg(fmt::color::red),           \
+                       "Error: {}:{} ({}) {}\n",      \
+                       __FILE__, __LINE__, #E,        \
+                       cudnnGetErrorString(_status)); \
+            exit(EXIT_FAILURE);                       \
+        }                                             \
     }
+
+#define POS(m, n, p, i, j, k) \
+    ((i) * (n) * (p) + (j) * (p) + (k))
+
+Matrix conv_2d(const Matrix &in, const Matrix &ker, size_t stride, size_t bs_x, size_t bs_y)
+{
+    // copy device memory
+    Matrix::data_t *dev_in;
+    Matrix::data_t *dev_ker;
+    CUDA_GUARD(cudaMalloc(&dev_in, in.data_size()));
+    CUDA_GUARD(cudaMalloc(&dev_ker, ker.data_size()));
+    CUDA_GUARD(cudaMemcpy(dev_in, in._data, in.data_size(), cudaMemcpyHostToDevice));
+    CUDA_GUARD(cudaMemcpy(dev_ker, ker._data, ker.data_size(), cudaMemcpyHostToDevice));
+
+    assert(ker.m() == ker.n());
+    size_t padding = ((ker.n() - 1) / 2) * 2;
+
     cudnnHandle_t cudnn;
-    cudnnCreate(&cudnn);
-
-    int stride = atoi(argv[4]), padding = atoi(argv[5]);
-    int in_n = 1,in_c = atoi(argv[1]),in_h = atoi(argv[2]),in_w = atoi(argv[3]);
-
-    int filt_k = in_n,filt_c = in_c,filt_h = 3,filt_w = 3;
-
-    auto filt_data = getKernelGptr<float>({ 0, 1, 0, 1, -4, 1, 0, 1, 0 }, filt_c, filt_h, filt_w);
-    auto in_data = getInputGptr(getMat<float>(r, in_h, in_w, in_c), in_c, in_h, in_w);
+    CUDNN_GUARD(cudnnCreate(&cudnn));
 
     cudnnTensorDescriptor_t in_desc;
-    cudnnCreateTensorDescriptor(&in_desc);
-    cudnnSetTensor4dDescriptor(in_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, in_n, in_c, in_h, in_w);
+    CUDNN_GUARD(cudnnCreateTensorDescriptor(&in_desc));
+    CUDNN_GUARD(cudnnSetTensor4dDescriptor(in_desc, CUDNN_TENSOR_NHWC, CUDNN_DATA_DOUBLE, 1, in.p(), in.m(), in.n()));
+    fmt::print(fg(fmt::color::green), "in size = {} {} {} {}\n", 1, in.m(), in.n(), in.p());
 
+    cudnnFilterDescriptor_t ker_desc;
+    CUDNN_GUARD(cudnnCreateFilterDescriptor(&ker_desc));
+    CUDNN_GUARD(cudnnSetFilter4dDescriptor(ker_desc, CUDNN_DATA_DOUBLE, CUDNN_TENSOR_NHWC, 1, ker.p(), ker.m(), ker.n()));
+    fmt::print(fg(fmt::color::green), "ker size = {} {} {} {}\n", 1, ker.m(), ker.n(), ker.p());
 
-    cudnnFilterDescriptor_t filt_desc;
-    cudnnCreateFilterDescriptor(&filt_desc);
-    cudnnSetFilter4dDescriptor(filt_desc, CUDNN_DATA_FLOAT, CUDNN_TENSOR_NCHW, filt_k, filt_c, filt_h, filt_w);
-
-    const int pad_h = padding;
-    const int pad_w = padding;
-    const int str_h = stride;
-    const int str_w = stride;
-    const int dil_h = 1;
-    const int dil_w = 1;
+    size_t pad_h = padding;
+    size_t pad_w = padding;
+    size_t str_h = stride;
+    size_t str_w = stride;
+    size_t dil_h = 1;
+    size_t dil_w = 1;
 
     cudnnConvolutionDescriptor_t conv_desc;
-    cudnnCreateConvolutionDescriptor(&conv_desc);
-    cudnnSetConvolution2dDescriptor( conv_desc, pad_h, pad_w, str_h, str_w, dil_h, dil_w, CUDNN_CONVOLUTION, CUDNN_DATA_FLOAT);
+    CUDNN_GUARD(cudnnCreateConvolutionDescriptor(&conv_desc));
+    CUDNN_GUARD(cudnnSetConvolution2dDescriptor(conv_desc, pad_h, pad_w, str_h, str_w, dil_h, dil_w, CUDNN_CONVOLUTION, CUDNN_DATA_DOUBLE));
+    fmt::print(fg(fmt::color::green), "{} {} {} {} {} {}\n", pad_h, pad_w, str_h, str_w, dil_h, dil_w);
 
-    int out_n;
     int out_c;
-    int out_h;
-    int out_w;
+    int out_m;
+    int out_n;
+    int out_p;
 
-    cudnnGetConvolution2dForwardOutputDim(conv_desc, in_desc, filt_desc,&out_n, &out_c, &out_h, &out_w);
-
-    std::cout << "out_n: " << out_n << std::endl;
-    std::cout << "out_c: " << out_c << std::endl;
-    std::cout << "out_h: " << out_h << std::endl;
-    std::cout << "out_w: " << out_w << std::endl;
-    std::cout << std::endl;
+    CUDNN_GUARD(cudnnGetConvolution2dForwardOutputDim(conv_desc, in_desc, ker_desc, &out_c, &out_p, &out_m, &out_n));
+    fmt::print(fg(fmt::color::green), "out size = {} {} {} {}\n", out_c, out_m, out_n, out_p);
 
     cudnnTensorDescriptor_t out_desc;
-    cudnnCreateTensorDescriptor(&out_desc);
-    cudnnSetTensor4dDescriptor(out_desc, CUDNN_TENSOR_NCHW, CUDNN_DATA_FLOAT, out_n, out_c, out_h, out_w);
+    CUDNN_GUARD(cudnnCreateTensorDescriptor(&out_desc));
+    CUDNN_GUARD(cudnnSetTensor4dDescriptor(out_desc, CUDNN_TENSOR_NHWC, CUDNN_DATA_DOUBLE, out_c, out_p, out_m, out_n));
 
-    float* out_data;
-    cudaMalloc(&out_data, out_n * out_c * out_h * out_w * sizeof(float));
+    Matrix out(out_m, out_n, out_p);
+    Matrix::data_t *dev_out;
+    CUDA_GUARD(cudaMalloc(&dev_out, out.data_size()));
 
-    cudnnConvolutionFwdAlgo_t algo;
-    cudnnGetConvolutionForwardAlgorithm(cudnn, in_desc, filt_desc, conv_desc, out_desc, CUDNN_CONVOLUTION_FWD_PREFER_FASTEST, 0, &algo);
+    cudnnConvolutionFwdAlgoPerf_t perf;
+    int perf_count;
+    CUDNN_GUARD(cudnnGetConvolutionForwardAlgorithm_v7(cudnn, in_desc, ker_desc, conv_desc, out_desc, 1, &perf_count, &perf));
 
-    std::cout << "Convolution algorithm: " << algo << std::endl;
+    std::cout << "Convolution algorithm: " << perf.algo << std::endl;
     std::cout << std::endl;
 
     size_t ws_size;
-    cudnnGetConvolutionForwardWorkspaceSize(cudnn, in_desc, filt_desc, conv_desc, out_desc, algo, &ws_size);
+    CUDNN_GUARD(cudnnGetConvolutionForwardWorkspaceSize(cudnn, in_desc, ker_desc, conv_desc, out_desc, perf.algo, &ws_size));
 
-    float* ws_data;
-    cudaMalloc(&ws_data, ws_size);
+    Matrix::data_t *ws_data;
+    CUDA_GUARD(cudaMalloc(&ws_data, ws_size));
 
     std::cout << "Workspace size: " << ws_size << std::endl;
     std::cout << std::endl;
 
-    float alpha = 1.f;
-    float beta = 0.f;
-    auto timeStart = std::chrono::high_resolution_clock::now();
-    cudnnConvolutionForward(cudnn, &alpha, in_desc, in_data, filt_desc, filt_data, conv_desc, algo, ws_data, ws_size, &beta, out_desc, out_data);
-    auto timeEnd = std::chrono::high_resolution_clock::now();
+    Matrix::data_t alpha = 1.f;
+    Matrix::data_t beta = 0.f;
+    CUDNN_GUARD(cudnnConvolutionForward(cudnn, &alpha, in_desc, dev_in, ker_desc, dev_ker, conv_desc, perf.algo, ws_data, ws_size, &beta, out_desc, dev_out));
+    CUDA_GUARD(cudaMemcpy(out._data, dev_out, out.data_size(), cudaMemcpyDeviceToHost));
 
-    auto passedTime = std::chrono::duration<double, std::milli>(timeEnd - timeStart).count();
-    fprintf(stdout, "Cuda Done: %.5f (ms)\n", passedTime);
+    CUDA_GUARD(cudaFree(dev_in));
+    CUDA_GUARD(cudaFree(dev_ker));
+    CUDA_GUARD(cudaFree(dev_out));
+    CUDA_GUARD(cudaFree(ws_data));
+    CUDNN_GUARD(cudnnDestroy(cudnn));
+    CUDNN_GUARD(cudnnDestroyConvolutionDescriptor(conv_desc));
+    CUDNN_GUARD(cudnnDestroyFilterDescriptor(ker_desc));
+    CUDNN_GUARD(cudnnDestroyTensorDescriptor(in_desc));
+    CUDNN_GUARD(cudnnDestroyTensorDescriptor(out_desc));
 
+    return out;
+}
 
+int main(int argc, char *argv[])
+{
+    if (argc <= 6)
+    {
+        fmt::print(stderr, fg(fmt::color::red),
+                   "usage: {} <height> <width> <depth> <stride> <thread.x> <thread.y> [--output]\n", argv[0]);
+        return CNN_INVALID_ARGUMENTS;
+    }
+    size_t height = std::stoull(argv[1]);
+    size_t width = std::stoull(argv[2]);
+    constexpr size_t depth = 3;
+    constexpr size_t filter_size = 3;
+    constexpr size_t filter_count = 3;
+    size_t stride = std::stoull(argv[4]);
+    size_t thread_x = std::stoull(argv[5]);
+    size_t thread_y = std::stoull(argv[6]);
+    bool has_output = false;
+    if (argc > 7 && std::strcmp(argv[7], "--output") == 0)
+    {
+        has_output = true;
+    }
 
-    cudaFree(ws_data);
-    cudaFree(out_data);
-    cudnnDestroyTensorDescriptor(out_desc);
-    cudnnDestroyConvolutionDescriptor(conv_desc);
-    cudaFree(filt_data);
-    cudnnDestroyFilterDescriptor(filt_desc);
-    cudaFree(in_data);
-    cudnnDestroyTensorDescriptor(in_desc);
-    cudnnDestroy(cudnn);
-    return 0;
+    fmt::print(fg(fmt::color::blue), "generating input\n");
+    Matrix input = Matrix(height, width, depth, true);
+    if (has_output)
+    {
+        fmt::print("{}\n", input);
+    }
+    fmt::print(fg(fmt::color::blue), "generating kernel\n");
+    Matrix kernels[filter_count];
+    for (size_t i = 0; i < filter_count; i++)
+    {
+        kernels[i] = Matrix(filter_size, filter_size, filter_size, true);
+        if (has_output)
+        {
+            fmt::print("{}\n", kernels[i]);
+        }
+    }
+
+    // perform convolution
+    auto start = std::chrono::high_resolution_clock::now();
+
+    fmt::print(fg(fmt::color::blue), "compute conv_2d x{}\n", filter_count);
+    Matrix R[filter_count];
+    for (size_t i = 0; i < filter_count; i++)
+    {
+        R[i] = conv_2d(input, kernels[i], stride, thread_x, thread_y);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> diff = end - start;
+    fmt::print(fg(fmt::color::orange), "time: {} ms\n", diff.count());
+    if (has_output)
+    {
+        for (size_t i = 0; i < filter_count; i++)
+        {
+            fmt::print("{}\n", R[i]);
+        }
+    }
+
+    return CNN_OK;
 }

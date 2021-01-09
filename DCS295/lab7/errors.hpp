@@ -1,5 +1,4 @@
 #pragma once
 
-#define MATRIX_OK 0
-#define MATRIX_INVALID_ARGUMENTS 1
-#define MATRIX_THREAD_LIMIT_EXCEED 2
+#define CNN_OK 0
+#define CNN_INVALID_ARGUMENTS 1
