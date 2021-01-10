@@ -27,9 +27,8 @@ target_compile_options(main PRIVATE -Wall)
 
 target_include_directories(main PUBLIC
     include
-    ${MYSQL_INCLUDE_DIRS}
 )
 target_link_libraries(main PUBLIC
     fmt::fmt
-    ${MYSQL_LIBRARY}
+    MySQL::MySQL
 )
