@@ -13,7 +13,11 @@ std::map<std::string, int> MySQLClient::col_size = std::map<std::string, int>{
     {"updated_at", 20},
     {"total_cost", 12},
     {"month", 8},
-};
+    {"provider_id", 8},
+    {"refund_id", 8},
+    {"order_id", 8},
+    {"stock_id", 8},
+    {"offer_id", 8}};
 
 MySQLClient::MySQLClient(const char *host, unsigned int port,
                          const char *user, const char *password,
