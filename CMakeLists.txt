@@ -15,6 +15,8 @@ add_executable(main
     src/table_printer.cpp
     src/test.cpp
     src/ui.cpp
+    src/controller/book.cpp
+    src/controller/provider.cpp
 )
 
 target_compile_features(main PUBLIC cxx_std_17)

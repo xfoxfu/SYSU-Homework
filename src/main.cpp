@@ -1,7 +1,8 @@
+#include "controller/book.h"
 #include "mysqlclient.h"
+#include "refund.h"
 #include "sell.h"
 #include "stock.h"
-#include "refund.h"
 #include <iostream>
 
 int main(int argc, char **argv)
@@ -22,6 +23,7 @@ int main(int argc, char **argv)
     }
 
     MySQLClient client(host.c_str(), atoi(port.c_str()), user.c_str(), password.c_str(), database.c_str());
+    book::list(client);
     /*
     for (int i = 1; i < 10; i++)
     {
