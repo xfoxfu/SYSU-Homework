@@ -18,11 +18,12 @@ add_executable(main
     src/controller/book.cpp
     src/controller/provider.cpp
     src/controller/offer.cpp
+    src/view.cpp
 )
 
 target_compile_features(main PUBLIC cxx_std_17)
 set_target_properties(main PROPERTIES CXX_EXTENSIONS OFF)
-target_compile_options(main PRIVATE -Wall -Wextra)
+target_compile_options(main PRIVATE -Wall)
 
 target_include_directories(main PUBLIC
     include
