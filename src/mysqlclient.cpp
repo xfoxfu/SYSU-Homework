@@ -1,5 +1,8 @@
 #include "mysqlclient.h"
 #include "../vendor/bprinter/table_printer.h"
+#include <fmt/color.h>
+#include <fmt/core.h>
+#include <mysqld_error.h>
 #include <vector>
 
 std::map<std::string, int> MySQLClient::col_size = std::map<std::string, int>{
@@ -16,6 +19,8 @@ std::map<std::string, int> MySQLClient::col_size = std::map<std::string, int>{
     {"provider_id", 8},
     {"name", 15},
     {"phone", 15},
+    {"offer_id", 4},
+    {"offer_price", 10},
 };
 
 MySQLClient::MySQLClient(const char *host, unsigned int port,
@@ -41,7 +46,7 @@ long long MySQLClient::update(const char *sql)
     int queryResult = mysql_query(&mysql, sql);
     if (queryResult)
     {
-        throw MySQLException(mysql_error(&mysql));
+        throw MySQLException(mysql_errno(&mysql), mysql_error(&mysql));
     }
 
     return mysql_affected_rows(&mysql);
@@ -52,7 +57,7 @@ std::vector<std::map<std::string, std::string>> MySQLClient::query(const char *s
     int queryResult = mysql_query(&mysql, sql);
     if (queryResult)
     {
-        throw MySQLException(mysql_error(&mysql));
+        throw MySQLException(mysql_errno(&mysql), mysql_error(&mysql));
     }
 
     MYSQL_RES *result = mysql_store_result(&mysql);
@@ -98,7 +103,7 @@ void MySQLClient::openConnection()
     MYSQL *ans = mysql_real_connect(&mysql, host.c_str(), user.c_str(), password.c_str(), database.c_str(), port, nullptr, CLIENT_MULTI_STATEMENTS | CLIENT_MULTI_QUERIES | CLIENT_MULTI_RESULTS);
     if (!ans)
     {
-        throw MySQLException(mysql_error(&mysql));
+        throw MySQLException(mysql_errno(&mysql), mysql_error(&mysql));
     }
 }
 
@@ -107,11 +112,35 @@ void MySQLClient::releaseConnection()
     mysql_close(&mysql);
 }
 
-MySQLException::MySQLException(const char *error)
+MySQLException::MySQLException(unsigned int code, const char *error)
 {
+    this->code = code;
     this->error = error;
 }
 const std::string &MySQLException::what()
 {
     return error;
+}
+const char *MySQLException::what() const noexcept
+{
+    return error.c_str();
+}
+unsigned int MySQLException::ecode() const noexcept
+{
+    return code;
+}
+
+bool MySQLException::is_fk_no_ref() const noexcept
+{
+    return code == ER_NO_REFERENCED_ROW || code == ER_NO_REFERENCED_ROW_2;
+}
+
+bool MySQLException::is_check_fail() const noexcept
+{
+    return code == ER_CHECK_CONSTRAINT_VIOLATED;
+}
+
+void MySQLException::print() const noexcept
+{
+    fmt::print(fg(fmt::color::red), "MySQL Exception: ({}) {}\n", ecode(), what());
 }

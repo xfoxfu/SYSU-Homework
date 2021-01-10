@@ -6,7 +6,7 @@ void provider::menu(MySQLClient &client)
 {
     auto op = select_command({
         {"list", "List all provider entries."},
-        {"query", "Find provider entries by name or ISBN."},
+        {"query", "Find provider entries by name or phone."},
         {"create", "Create a new provider entry."},
         {"update", "Update a present provider entry."},
         {"delete", "Delete a provider entry."},

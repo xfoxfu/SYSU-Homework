@@ -31,7 +31,8 @@ CREATE TABLE `book`  (
   `created_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) COMMENT '创建时间',
   `updated_at` datetime(0) NOT NULL DEFAULT CURRENT_TIMESTAMP(0) ON UPDATE CURRENT_TIMESTAMP(0) COMMENT '更新时间',
   PRIMARY KEY (`book_id`) USING BTREE,
-  UNIQUE INDEX `isbn_UNIQUE`(`isbn`) USING BTREE
+  UNIQUE INDEX `book_uq_isbn`(`isbn`) USING BTREE,
+  CONSTRAINT `book_chk_price` CHECK ((`price` >= 0))
 ) ENGINE = InnoDB AUTO_INCREMENT = 11 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------
@@ -63,7 +64,8 @@ CREATE TABLE `offer`  (
   INDEX `book_id_idx`(`book_id`) USING BTREE,
   INDEX `provider_id_idx`(`provider_id`) USING BTREE,
   CONSTRAINT `book_id` FOREIGN KEY (`book_id`) REFERENCES `book` (`book_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
-  CONSTRAINT `provider_id` FOREIGN KEY (`provider_id`) REFERENCES `provider` (`provider_id`) ON DELETE RESTRICT ON UPDATE RESTRICT
+  CONSTRAINT `provider_id` FOREIGN KEY (`provider_id`) REFERENCES `provider` (`provider_id`) ON DELETE RESTRICT ON UPDATE RESTRICT,
+  CONSTRAINT `offer_chk_price` CHECK ((`price` >= 0))
 ) ENGINE = InnoDB AUTO_INCREMENT = 71 CHARACTER SET = utf8 COLLATE = utf8_general_ci ROW_FORMAT = Dynamic;
 
 -- ----------------------------

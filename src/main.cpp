@@ -1,9 +1,12 @@
 #include "controller/book.h"
+#include "controller/offer.h"
 #include "controller/provider.h"
 #include "mysqlclient.h"
 #include "refund.h"
 #include "sell.h"
 #include "stock.h"
+#include <fmt/color.h>
+#include <fmt/core.h>
 #include <iostream>
 
 int main(int argc, char **argv)
@@ -26,7 +29,18 @@ int main(int argc, char **argv)
     MySQLClient client(host.c_str(), atoi(port.c_str()), user.c_str(), password.c_str(), database.c_str());
     while (true)
     {
-        provider::menu(client);
+        try
+        {
+            book::menu(client);
+        }
+        catch (MySQLException &ex)
+        {
+            ex.print();
+        }
+        catch (std::exception &ex)
+        {
+            fmt::print(fg(fmt::color::red), "Exception: {}", ex.what());
+        }
     }
     /*
     for (int i = 1; i < 10; i++)

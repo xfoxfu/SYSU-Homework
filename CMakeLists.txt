@@ -17,6 +17,7 @@ add_executable(main
     src/ui.cpp
     src/controller/book.cpp
     src/controller/provider.cpp
+    src/controller/offer.cpp
 )
 
 target_compile_features(main PUBLIC cxx_std_17)

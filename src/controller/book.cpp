@@ -56,7 +56,22 @@ void book::create(MySQLClient &client)
         "INSERT INTO book (title, author, isbn, count, price) "
         "VALUES (\"{}\", \"{}\", \"{}\", {}, {})",
         title, author, isbn, count, price);
-    auto res = client.update(sql.c_str());
+    try
+    {
+        auto res = client.update(sql.c_str());
+    }
+    catch (const MySQLException &ex)
+    {
+        if (ex.is_check_fail())
+        {
+            xlog::fail("Invalid price value.\n");
+            return;
+        }
+        else
+        {
+            throw ex;
+        }
+    }
 
     xlog::success("Book created successfully.\n");
 }
@@ -84,7 +99,22 @@ void book::update(MySQLClient &client)
         auto value = input_string(field.c_str());
         sql = fmt::format("UPDATE {} SET {} = {} WHERE book_id = {};", "book", field, value, id);
     }
-    auto res = client.update(sql.c_str());
+    try
+    {
+        auto res = client.update(sql.c_str());
+    }
+    catch (const MySQLException &ex)
+    {
+        if (ex.is_check_fail())
+        {
+            xlog::fail("Invalid price value.\n");
+            return;
+        }
+        else
+        {
+            throw ex;
+        }
+    }
 
     xlog::success("Book successfully updated.\n");
 }

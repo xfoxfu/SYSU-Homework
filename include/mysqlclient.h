@@ -50,16 +50,24 @@ private:
 };
 
 // MySQL异常
-class MySQLException
+class MySQLException : public std::exception
 {
 private:
     // 错误信息
     std::string error;
+    unsigned int code;
 
 public:
-    MySQLException(const char *error);
+    MySQLException(unsigned int code, const char *error);
     // 返回错误信息
     const std::string &what();
+    virtual const char *what() const noexcept;
+    unsigned int ecode() const noexcept;
+
+    void print() const noexcept;
+
+    bool is_fk_no_ref() const noexcept;
+    bool is_check_fail() const noexcept;
 };
 
 #endif
