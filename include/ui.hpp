@@ -14,9 +14,9 @@ std::string input_string(const char *prompt);
 
 std::string select_command(std::initializer_list<std::pair<const char *, const char *>> commands);
 
-namespace log
+namespace xlog
 {
     void info(const char *message);
     void success(const char *message);
     void fail(const char *message);
-}; // namespace log
+}; // namespace xlog

@@ -56,14 +56,14 @@ void book::create(MySQLClient &client)
         "INSERT INTO book (title, author, isbn, count, price) "
         "VALUES (\"{}\", \"{}\", \"{}\", {}, {})",
         title, author, isbn, count, price);
-    auto res = client.query(sql.c_str());
+    auto res = client.update(sql.c_str());
 
-    log::success("Book created successfully.");
+    xlog::success("Book created successfully.\n");
 }
 
 void book::update(MySQLClient &client)
 {
-    log::info("Select a book from the following list");
+    xlog::info("Select a book from the following list\n");
     book::list(client);
     auto id = input_number("book_id");
 
@@ -84,19 +84,19 @@ void book::update(MySQLClient &client)
         auto value = input_string(field.c_str());
         sql = fmt::format("UPDATE {} SET {} = {} WHERE book_id = {};", "book", field, value, id);
     }
-    auto res = client.query(sql.c_str());
+    auto res = client.update(sql.c_str());
 
-    log::success("Book successfully updated.");
+    xlog::success("Book successfully updated.\n");
 }
 
 void book::remove(MySQLClient &client)
 {
-    log::info("Select a book from the following list");
+    xlog::info("Select a book from the following list\n");
     book::list(client);
     auto id = input_number("book_id");
 
     auto sql = fmt::format("DELETE FROM {} WHERE book_id = {};", "book", id);
-    auto res = client.query(sql.c_str());
+    auto res = client.update(sql.c_str());
 
-    log::success("Book successfully removed.");
+    xlog::success("Book successfully removed.\n");
 }

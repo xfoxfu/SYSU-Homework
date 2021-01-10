@@ -32,20 +32,6 @@ void provider::list(MySQLClient &client)
         res);
 }
 
-void provider::create(MySQLClient &client)
-{
-    auto name = input_string("Name");
-    auto phone = input_string("Phone");
-
-    auto sql = fmt::format(
-        "INSERT INTO provider (name, phone) "
-        "VALUES (\"{}\", \"{}\")",
-        name, phone);
-    auto res = client.query(sql.c_str());
-
-    log::success("Provider created successfully.");
-}
-
 void provider::query(MySQLClient &client)
 {
     auto query = input_string("Search");
@@ -58,9 +44,23 @@ void provider::query(MySQLClient &client)
         res);
 }
 
+void provider::create(MySQLClient &client)
+{
+    auto name = input_string("Name");
+    auto phone = input_string("Phone");
+
+    auto sql = fmt::format(
+        "INSERT INTO provider (name, phone) "
+        "VALUES (\"{}\", \"{}\")",
+        name, phone);
+    auto res = client.update(sql.c_str());
+
+    xlog::success("Provider created successfully.\n");
+}
+
 void provider::update(MySQLClient &client)
 {
-    log::info("Select a provider from the following list");
+    xlog::info("Select a provider from the following list\n");
     provider::list(client);
     auto id = input_number("provider_id");
 
@@ -70,19 +70,19 @@ void provider::update(MySQLClient &client)
     });
     auto value = input_string(field.c_str());
     auto sql = fmt::format("UPDATE {} SET {} = \"{}\" WHERE provider_id = {};", "provider", field, value, id);
-    auto res = client.query(sql.c_str());
+    auto res = client.update(sql.c_str());
 
-    log::success("Provider successfully updated.");
+    xlog::success("Provider successfully updated.\n");
 }
 
 void provider::remove(MySQLClient &client)
 {
-    log::info("Select a provider from the following list");
+    xlog::info("Select a provider from the following list\n");
     provider::list(client);
     auto id = input_number("provider_id");
 
     auto sql = fmt::format("DELETE FROM {} WHERE provider_id = {};", "provider", id);
-    auto res = client.query(sql.c_str());
+    auto res = client.update(sql.c_str());
 
-    log::success("Provider successfully removed.");
+    xlog::success("Provider successfully removed.\n");
 }

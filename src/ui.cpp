@@ -127,15 +127,15 @@ std::string select_command(std::initializer_list<std::pair<const char *, const c
     }
 }
 
-void log::info(const char *message)
+void xlog::info(const char *message)
 {
     fmt::print(fg(fmt::color::blue), message);
 }
-void log::success(const char *message)
+void xlog::success(const char *message)
 {
     fmt::print(fg(fmt::color::green), message);
 }
-void log::fail(const char *message)
+void xlog::fail(const char *message)
 {
     fmt::print(fg(fmt::color::red), message);
 }
