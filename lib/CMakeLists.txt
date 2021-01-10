@@ -1,1 +1,0 @@
-add_library(mysql libmysql.dll)

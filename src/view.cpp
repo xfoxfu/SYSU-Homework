@@ -2,25 +2,12 @@
 #include "stock.h"
 #include "sell.h"
 #include "refund.h"
-
+#include "controller/book.h"
+#include "controller/offer.h"
+#include "controller/provider.h"
 #include <iostream>
 #include <string>
-
-void View::choice()
-{
-    std::cout << "---please enter your choice---\n"
-              << "1 stock\n"
-              << "2 refund\n"
-              << "3 report\n"
-              << "4 purchase\n"
-              << "5 bookstore management\n"
-              << "6 offer management\n"
-              << "7 provider management\n"
-              << "0 exit\n"
-              << "------------------------------\n"
-              << "? ";
-}
-
+#include "ui.hpp"
 void View::show(MySQLClient &client)
 {
     std::string input;
@@ -28,8 +15,15 @@ void View::show(MySQLClient &client)
 
     while (true)
     {
-        choice();
-        std::getline(std::cin, input);
+        input = select_command({{"1", "stock"},
+                                {"2", "refund"},
+                                {"3", "report"},
+                                {"4", "purchase"},
+                                {"5", "bookstore management"},
+                                {"6", "offer management"},
+                                {"7", "provider management"},
+                                {"0", "exit"}});
+
         item = atoi(input.c_str());
         switch (item)
         {
@@ -44,6 +38,15 @@ void View::show(MySQLClient &client)
             break;
         case 4:
             purchase(client);
+            break;
+        case 5:
+            book::menu(client);
+            break;
+        case 6:
+            offer::menu(client);
+            break;
+        case 7:
+            provider::menu(client);
             break;
         case 0:
             std::cout << "\nthank you, bye\n";
@@ -144,13 +147,9 @@ void View::refund(MySQLClient &client)
 void View::report(MySQLClient &client)
 {
     std::string input;
-    std::cout << "---please enter report type---\n"
-              << "1 month report\n"
-              << "2 year report\n"
-              << "0 exit\n"
-              << "------------------------------\n"
-              << "? ";
-    std::getline(std::cin, input);
+    input = select_command({{"1", "month report"},
+                            {"2", "year report"},
+                            {"0", "exit"}});
     int item = atoi(input.c_str());
     switch (item)
     {

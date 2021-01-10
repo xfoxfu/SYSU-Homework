@@ -1,12 +1,12 @@
 #include "ui.hpp"
 
-#include <iostream>
-#include <iomanip>
 #include <algorithm>
 #include <cctype>
-#include <locale>
-#include <fmt/core.h>
 #include <fmt/color.h>
+#include <fmt/core.h>
+#include <iomanip>
+#include <iostream>
+#include <locale>
 
 // this is copied from https://stackoverflow.com/a/217605/5272201
 static inline void ltrim(std::string &s)
@@ -69,6 +69,20 @@ unsigned int input_unsigned(const char *prompt)
         }
     }
 }
+double input_double(const char *prompt)
+{
+    while (true)
+    {
+        try
+        {
+            return std::stod(input_string(prompt));
+        }
+        catch (const std::exception &e)
+        {
+            fmt::print(fg(fmt::color::red), "Invalid input.\n");
+        }
+    }
+}
 std::string input_string(const char *prompt)
 {
     if (prompt != nullptr && *prompt != '\0')
@@ -111,4 +125,17 @@ std::string select_command(std::initializer_list<std::pair<const char *, const c
         }
         fmt::print(fg(fmt::color::red), "Invalid input, try again.\n");
     }
+}
+
+void xlog::info(const char *message)
+{
+    fmt::print(fg(fmt::color::blue), message);
+}
+void xlog::success(const char *message)
+{
+    fmt::print(fg(fmt::color::green), message);
+}
+void xlog::fail(const char *message)
+{
+    fmt::print(fg(fmt::color::red), message);
 }

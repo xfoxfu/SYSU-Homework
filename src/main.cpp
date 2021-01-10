@@ -1,3 +1,6 @@
+#include "controller/book.h"
+#include "controller/offer.h"
+#include "controller/provider.h"
 #include "mysqlclient.h"
 #include "view.h"
 #include <iostream>
