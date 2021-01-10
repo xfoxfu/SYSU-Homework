@@ -1,209 +1,91 @@
+# - Try to find MySQL.
+# Once done this will define:
+# MYSQL_FOUND			- If false, do not try to use MySQL.
+# MYSQL_INCLUDE_DIRS	- Where to find mysql.h, etc.
+# MYSQL_LIBRARIES		- The libraries to link against.
+# MYSQL_VERSION_STRING	- Version in a string of MySQL.
 #
-# This module is designed to find/handle mysql(client) library
+# Created by RenatoUtsch based on eAthena implementation.
+# Updated by Andre Bar'yudin
 #
-# Requirements:
-# - CMake >= 2.8.3 (for new version of find_package_handle_standard_args)
+# Please note that this module only supports Windows and Linux officially, but
+# should work on all UNIX-like operational systems too.
 #
-# The following variables will be defined for your use:
-#   - MySQL_INCLUDE_DIRS  : mysql(client) include directory
-#   - MySQL_LIBRARIES     : mysql(client) libraries
-#   - MySQL_VERSION       : complete version of mysql(client) (x.y.z)
-#   - MySQL_VERSION_MAJOR : major version of mysql(client)
-#   - MySQL_VERSION_MINOR : minor version of mysql(client)
-#   - MySQL_VERSION_PATCH : patch version of mysql(client)
-#
-# How to use:
-#   1) Copy this file in the root of your project source directory
-#   2) Then, tell CMake to search this non-standard module in your project directory by adding to your CMakeLists.txt:
-#        set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
-#   3) Finally call find_package(MySQL) once
-#
-# Here is a complete sample to build an executable:
-#
-#   set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR})
-#
-#   find_package(MySQL REQUIRED) # Note: name is case sensitive
-#
-#   add_executable(myapp myapp.c)
-#   include_directories(${MySQL_INCLUDE_DIRS})
-#   target_link_libraries(myapp ${MySQL_LIBRARIES})
-#   # with CMake >= 3.0.0, the last two lines can be replaced by the following
-#   target_link_libraries(myapp MySQL::MySQL) # Note: case also matters here
-#
-
 
 #=============================================================================
-# Copyright (c) 2013-2020, julp
+# Copyright 2012 RenatoUtsch
 #
-# Distributed under the OSI-approved BSD License
+# Distributed under the OSI-approved BSD License (the "License");
+# see accompanying file Copyright.txt for details.
 #
 # This software is distributed WITHOUT ANY WARRANTY; without even the
 # implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
+# See the License for more information.
 #=============================================================================
+# (To distribute this file outside of CMake, substitute the full
+#  License text for the above reference.)
 
-# TODO:
-# - mariadb support?
-# - on Windows, lookup for related registry keys
+if( WIN32 )
+	set(MYENVx86 "PROGRAMFILES(X86)")
 
-cmake_minimum_required(VERSION 3.0.0)
+	set(MYSQL_SOURCE_DIRS 
+		"$ENV{PROGRAMFILES}/MySQL" 
+		"$ENV{${MYENVx86}}/MySQL" 
+		"$ENV{SYSTEMDRIVE}/MySQL"
+		"$ENV{ProgramW6432}/MySQL"
+		)
 
-# "As of MySQL 5.7.9, MySQL distributions contain a mysqlclient.pc file that provides information about MySQL configuration for use by the pkg-config command."
-find_package(PkgConfig QUIET)
+	foreach(stem ${MYSQL_SOURCE_DIRS})
+		file(GLOB MYTEMPVAR1 LINK_DIRECTORIES TRUE "${stem}/*/include")
+		list(APPEND MYSQL_DIRS_INC
+			${MYTEMPVAR1})
+		file(GLOB MYTEMPVAR2 LINK_DIRECTORIES TRUE "${stem}/*/lib")
+		list(APPEND MYSQL_DIRS_LIB
+			${MYTEMPVAR2})
+	endforeach(stem)
+		
+	find_path( MYSQL_INCLUDE_DIR
+		NAMES "mysql.h"
+		PATHS ${MYSQL_DIRS_INC})
+	
+	find_library( MYSQL_LIBRARY
+		NAMES "mysqlclient" "mysqlclient_r"
+		PATHS  ${MYSQL_DIRS_LIB} )
+else()
+	find_path( MYSQL_INCLUDE_DIR
+		NAMES "mysql.h"
+		PATHS "/usr/include/mysql"
+			  "/usr/local/include/mysql"
+			  "/usr/mysql/include/mysql" )
+	
+	find_library( MYSQL_LIBRARY
+		NAMES "mysqlclient" "mysqlclient_r"
+		PATHS "/lib/mysql"
+			  "/lib64/mysql"
+			  "/usr/lib/mysql"
+			  "/usr/lib64/mysql"
+			  "/usr/local/lib/mysql"
+			  "/usr/local/lib64/mysql"
+			  "/usr/mysql/lib/mysql"
+			  "/usr/mysql/lib64/mysql" )
+endif()
 
-########## Private ##########
-if(NOT DEFINED MySQL_PUBLIC_VAR_NS)
-    set(MySQL_PUBLIC_VAR_NS "MySQL")
-endif(NOT DEFINED MySQL_PUBLIC_VAR_NS)
-if(NOT DEFINED MySQL_PRIVATE_VAR_NS)
-    set(MySQL_PRIVATE_VAR_NS "_${MySQL_PUBLIC_VAR_NS}")
-endif(NOT DEFINED MySQL_PRIVATE_VAR_NS)
-if(NOT DEFINED PC_MySQL_PRIVATE_VAR_NS)
-    set(PC_MySQL_PRIVATE_VAR_NS "_PC${MySQL_PRIVATE_VAR_NS}")
-endif(NOT DEFINED PC_MySQL_PRIVATE_VAR_NS)
+if( EXISTS "${MYSQL_INCLUDE_DIR}/mysql_version.h" )
+	file( STRINGS "${MYSQL_INCLUDE_DIR}/mysql_version.h"
+		MYSQL_VERSION_H REGEX "^#define[ \t]+MYSQL_SERVER_VERSION[ \t]+\"[^\"]+\".*$" )
+	string( REGEX REPLACE
+		"^.*MYSQL_SERVER_VERSION[ \t]+\"([^\"]+)\".*$" "\\1" MYSQL_VERSION_STRING
+		"${MYSQL_VERSION_H}" )
+endif()
 
-# Alias all MySQL_FIND_X variables to MySQL_FIND_X
-# Workaround for find_package: no way to force case of variable's names it creates (I don't want to change MY coding standard)
-set(${MySQL_PRIVATE_VAR_NS}_FIND_PKG_PREFIX "MySQL")
-get_directory_property(${MySQL_PRIVATE_VAR_NS}_CURRENT_VARIABLES VARIABLES)
-foreach(${MySQL_PRIVATE_VAR_NS}_VARNAME ${${MySQL_PRIVATE_VAR_NS}_CURRENT_VARIABLES})
-    if(${MySQL_PRIVATE_VAR_NS}_VARNAME MATCHES "^${${MySQL_PRIVATE_VAR_NS}_FIND_PKG_PREFIX}")
-        string(REGEX REPLACE "^${${MySQL_PRIVATE_VAR_NS}_FIND_PKG_PREFIX}" "${MySQL_PUBLIC_VAR_NS}" ${MySQL_PRIVATE_VAR_NS}_NORMALIZED_VARNAME ${${MySQL_PRIVATE_VAR_NS}_VARNAME})
-        set(${${MySQL_PRIVATE_VAR_NS}_NORMALIZED_VARNAME} ${${${MySQL_PRIVATE_VAR_NS}_VARNAME}})
-    endif(${MySQL_PRIVATE_VAR_NS}_VARNAME MATCHES "^${${MySQL_PRIVATE_VAR_NS}_FIND_PKG_PREFIX}")
-endforeach(${MySQL_PRIVATE_VAR_NS}_VARNAME)
+# handle the QUIETLY and REQUIRED arguments and set MYSQL_FOUND to TRUE if
+# all listed variables are TRUE
+include( FindPackageHandleStandardArgs )
+find_package_handle_standard_args( MySQL
+    REQUIRED_VARS	MYSQL_LIBRARY MYSQL_INCLUDE_DIR
+	VERSION_VAR		MYSQL_VERSION_STRING )
 
-macro(_mysql_set_dotted_version VERSION_STRING)
-    set(${MySQL_PUBLIC_VAR_NS}_VERSION "${VERSION_STRING}")
-endmacro(_mysql_set_dotted_version)
+set( MYSQL_INCLUDE_DIRS ${MYSQL_INCLUDE_DIR} )
+set( MYSQL_LIBRARIES ${MYSQL_LIBRARY} )
 
-########## Public ##########
-if(PKG_CONFIG_FOUND)
-    pkg_check_modules(${PC_MySQL_PRIVATE_VAR_NS} "mysqlclient" QUIET)
-    if(${PC_MySQL_PRIVATE_VAR_NS}_FOUND)
-		if(${PC_MySQL_PRIVATE_VAR_NS}_VERSION)
-            _mysql_set_dotted_version("${${PC_MySQL_PRIVATE_VAR_NS}_VERSION}")
-        endif(${PC_MySQL_PRIVATE_VAR_NS}_VERSION)
-    endif(${PC_MySQL_PRIVATE_VAR_NS}_FOUND)
-endif(PKG_CONFIG_FOUND)
-
-find_program(${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE mysql_config)
-if(${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE)
-    execute_process(OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE} --cflags                 OUTPUT_VARIABLE ${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_C_FLAGS)
-    execute_process(OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE} --version                OUTPUT_VARIABLE ${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_VERSION)
-    execute_process(OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE} --variable=pkglibdir     OUTPUT_VARIABLE ${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_LIBRARY_DIR)
-    execute_process(OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE} --variable=pkgincludedir OUTPUT_VARIABLE ${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_INCLUDE_DIR)
-#     execute_process(OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE} --plugindir              OUTPUT_VARIABLE ${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_PLUGIN_DIR)
-#     execute_process(OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE} --socket                 OUTPUT_VARIABLE ${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_SOCKET)
-#     execute_process(OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE} --port                   OUTPUT_VARIABLE ${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_PORT)
-#     execute_process(OUTPUT_STRIP_TRAILING_WHITESPACE COMMAND ${${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE} --libmysqld-libs         OUTPUT_VARIABLE ${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_LIBRARY_EMBEDDED)
-
-    _mysql_set_dotted_version("${${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_VERSION}")
-endif(${MySQL_PUBLIC_VAR_NS}_CONFIG_EXECUTABLE)
-
-set(${MySQL_PRIVATE_VAR_NS}_COMMON_FIND_OPTIONS PATH_SUFFIXES mysql)
-
-find_path(
-    ${MySQL_PUBLIC_VAR_NS}_INCLUDE_DIR
-    NAMES mysql_version.h
-    ${${MySQL_PRIVATE_VAR_NS}_COMMON_FIND_OPTIONS}
-    PATHS ${${PC_MySQL_PRIVATE_VAR_NS}_INCLUDE_DIRS} ${${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_INCLUDE_DIR}
-)
-
-if(WIN32)
-    include(SelectLibraryConfigurations)
-    # "On Windows, the static library is mysqlclient.lib and the dynamic library is libmysql.dll. Windows distributions also include libmysql.lib, a static import library needed for using the dynamic library."
-    set(${MySQL_PRIVATE_VAR_NS}_POSSIBLE_NAMES "mysql" "mysqlclient")
-
-    find_library(
-        ${MySQL_PUBLIC_VAR_NS}_LIBRARY_RELEASE
-        NAMES ${${MySQL_PRIVATE_VAR_NS}_POSSIBLE_NAMES}
-        DOC "Release library for mysqlclient"
-        ${${MySQL_PRIVATE_VAR_NS}_COMMON_FIND_OPTIONS}
-    )
-    # "Windows distributions also include a set of debug libraries. These have the same names as the nondebug libraries, but are located in the lib/debug library. You must use the debug libraries when compiling clients built using the debug C runtime."
-    find_library(
-        ${MySQL_PUBLIC_VAR_NS}_LIBRARY_DEBUG
-        NAMES ${${MySQL_PRIVATE_VAR_NS}_POSSIBLE_NAMES}
-        DOC "Debug library for mysqlclient"
-        PATH_SUFFIXES mysql/debug debug
-    )
-
-    select_library_configurations("${MySQL_PUBLIC_VAR_NS}")
-else(WIN32)
-    # "On Unix (and Unix-like) sytems, the static library is libmysqlclient.a. The dynamic library is libmysqlclient.so on most Unix systems and libmysqlclient.dylib on OS X."
-    find_library(
-        ${MySQL_PUBLIC_VAR_NS}_LIBRARY
-        NAMES mysqlclient
-        PATHS ${${PC_MySQL_PRIVATE_VAR_NS}_LIBRARY_DIRS} ${${MySQL_PUBLIC_VAR_NS}_MySQL_CONFIG_LIBRARY_DIR}
-        ${${MySQL_PRIVATE_VAR_NS}_COMMON_FIND_OPTIONS}
-    )
-endif(WIN32)
-
-# Check find_package arguments
-include(FindPackageHandleStandardArgs)
-if(${MySQL_PUBLIC_VAR_NS}_FIND_REQUIRED AND NOT ${MySQL_PUBLIC_VAR_NS}_FIND_QUIETLY)
-    find_package_handle_standard_args(
-        ${MySQL_PUBLIC_VAR_NS}
-        REQUIRED_VARS ${MySQL_PUBLIC_VAR_NS}_LIBRARY ${MySQL_PUBLIC_VAR_NS}_INCLUDE_DIR
-        VERSION_VAR ${MySQL_PUBLIC_VAR_NS}_VERSION
-    )
-else(${MySQL_PUBLIC_VAR_NS}_FIND_REQUIRED AND NOT ${MySQL_PUBLIC_VAR_NS}_FIND_QUIETLY)
-    find_package_handle_standard_args(${MySQL_PUBLIC_VAR_NS} "Could NOT find mysql(client)" ${MySQL_PUBLIC_VAR_NS}_LIBRARY ${MySQL_PUBLIC_VAR_NS}_INCLUDE_DIR)
-endif(${MySQL_PUBLIC_VAR_NS}_FIND_REQUIRED AND NOT ${MySQL_PUBLIC_VAR_NS}_FIND_QUIETLY)
-
-if(${MySQL_PUBLIC_VAR_NS}_FOUND)
-    set(${MySQL_PUBLIC_VAR_NS}_LIBRARIES ${${MySQL_PUBLIC_VAR_NS}_LIBRARY})
-    set(${MySQL_PUBLIC_VAR_NS}_INCLUDE_DIRS ${${MySQL_PUBLIC_VAR_NS}_INCLUDE_DIR})
-    if(CMAKE_VERSION VERSION_GREATER "3.0.0")
-        if(NOT TARGET MySQL::MySQL)
-            add_library(MySQL::MySQL UNKNOWN IMPORTED)
-        endif(NOT TARGET MySQL::MySQL)
-        if(${MySQL_PUBLIC_VAR_NS}_LIBRARY_RELEASE)
-            set_property(TARGET MySQL::MySQL APPEND PROPERTY IMPORTED_CONFIGURATIONS RELEASE)
-            set_target_properties(MySQL::MySQL PROPERTIES IMPORTED_LOCATION_RELEASE "${${MySQL_PUBLIC_VAR_NS}_LIBRARY_RELEASE}")
-        endif(${MySQL_PUBLIC_VAR_NS}_LIBRARY_RELEASE)
-        if(${MySQL_PUBLIC_VAR_NS}_LIBRARY_DEBUG)
-            set_property(TARGET MySQL::MySQL APPEND PROPERTY IMPORTED_CONFIGURATIONS DEBUG)
-            set_target_properties(MySQL::MySQL PROPERTIES IMPORTED_LOCATION_DEBUG "${${MySQL_PUBLIC_VAR_NS}_LIBRARY_DEBUG}")
-        endif(${MySQL_PUBLIC_VAR_NS}_LIBRARY_DEBUG)
-        if(${MySQL_PUBLIC_VAR_NS}_LIBRARY)
-            set_target_properties(MySQL::MySQL PROPERTIES IMPORTED_LOCATION "${${MySQL_PUBLIC_VAR_NS}_LIBRARY}")
-        endif(${MySQL_PUBLIC_VAR_NS}_LIBRARY)
-        set_target_properties(MySQL::MySQL PROPERTIES INTERFACE_INCLUDE_DIRECTORIES "${${MySQL_PUBLIC_VAR_NS}_INCLUDE_DIR}")
-    endif(CMAKE_VERSION VERSION_GREATER "3.0.0")
-endif(${MySQL_PUBLIC_VAR_NS}_FOUND)
-
-mark_as_advanced(
-    ${MySQL_PUBLIC_VAR_NS}_INCLUDE_DIR
-    ${MySQL_PUBLIC_VAR_NS}_LIBRARY
-)
-
-########## <debug> ##########
-
-if(${MySQL_PUBLIC_VAR_NS}_DEBUG)
-
-    function(mysql_debug _VARNAME)
-        if(DEFINED ${MySQL_PUBLIC_VAR_NS}_${_VARNAME})
-            message("${MySQL_PUBLIC_VAR_NS}_${_VARNAME} = ${${MySQL_PUBLIC_VAR_NS}_${_VARNAME}}")
-        else(DEFINED ${MySQL_PUBLIC_VAR_NS}_${_VARNAME})
-            message("${MySQL_PUBLIC_VAR_NS}_${_VARNAME} = <UNDEFINED>")
-        endif(DEFINED ${MySQL_PUBLIC_VAR_NS}_${_VARNAME})
-    endfunction(mysql_debug)
-
-    # IN (args)
-    mysql_debug("FIND_REQUIRED")
-    mysql_debug("FIND_QUIETLY")
-    mysql_debug("FIND_VERSION")
-    # OUT
-    # Linking
-    mysql_debug("INCLUDE_DIRS")
-    mysql_debug("LIBRARIES")
-    # Version
-    mysql_debug("VERSION_MAJOR")
-    mysql_debug("VERSION_MINOR")
-    mysql_debug("VERSION_PATCH")
-    mysql_debug("VERSION")
-
-endif(${MySQL_PUBLIC_VAR_NS}_DEBUG)
-
-########## </debug> ##########
+mark_as_advanced( MYSQL_INCLUDE_DIR MYSQL_LIBRARY )
