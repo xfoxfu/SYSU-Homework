@@ -22,7 +22,7 @@ std::vector<std::map<std::string, std::string>> showProviderForBook(MySQLClient 
  * @param book_id: 图书id
  * @param amount: 进货数量
  */
-void increaseStock(MySQLClient &client, int offer_id, int book_id, int amount);
+QueryResult increaseStock(MySQLClient &client, int offer_id, int book_id, int amount);
 
 // 示例前端
 void fakeFrontEnd(MySQLClient &client);

@@ -9,7 +9,7 @@
  * @param count 退货数量
  * @return refund_id, 失败返回-1
  */
-int refund(MySQLClient &client, int order_id, int count);
+QueryResult refund(MySQLClient &client, int order_id, int count);
 
 /**
  * 测试refund函数
