@@ -18,12 +18,13 @@ bool purchase(MySQLClient &c, int book_id,string name, int purchase_num)
     {
         string query_str = "select title,count from book where book_id="+to_string(book_id);
         auto retTable = c.query(query_str.c_str());
+        cout<<"number of books in stock:"<<endl;
         c.printTable({ "title","count" }, retTable);
-
         query_str = "call purchase(" + to_string(book_id) + "," + to_string(purchase_num) +", '"+name+ "')";
         retTable = c.query(query_str.c_str());
         if (retTable.size() == 0)
             return false;
+        cout<<"Your invoice:"<<endl;
         c.printTable({ "book_id","title","author","isbn","count","price","created_at","updated_at","total_cost" },retTable);
     }
     catch (const std::exception&e)
