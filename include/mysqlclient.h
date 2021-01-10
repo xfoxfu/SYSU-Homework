@@ -1,12 +1,12 @@
 #ifndef MYSQL_CLIENT_H
 #define MYSQL_CLIENT_H
 
-#include "libmysql/mysql.h"
+#include "mysql.h"
 #include <iostream>
-#include <stdexcept>
 #include <map>
-#include <vector>
+#include <stdexcept>
 #include <string>
+#include <vector>
 
 typedef std::vector<std::map<std::string, std::string>> QueryResult;
 

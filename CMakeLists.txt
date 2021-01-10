@@ -25,10 +25,7 @@ target_include_directories(main PUBLIC
     include
     ${MYSQL_INCLUDE_DIRS}
 )
-target_link_directories(main PUBLIC
-    ${MYSQL_LIBRARY_DIRS}
-)
 target_link_libraries(main PUBLIC
     fmt::fmt
-    ${MYSQL_LIBRARIES}
+    ${MYSQL_LIBRARY}
 )
