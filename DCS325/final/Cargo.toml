@@ -1,0 +1,24 @@
+[package]
+name = "distkv"
+version = "0.1.0"
+authors = ["Yuze Fu <fuyz@mail2.sysu.edu.cn>", "siddontang <siddontang@gmail.com>"]
+edition = "2018"
+publish = false
+
+build = "build.rs"
+
+[dependencies]
+capnp = "0.14"
+capnp-rpc = "0.14"
+clap = "3.0.0-beta.1"
+crossbeam-channel = "0.5"
+log = "0.4"
+pretty_env_logger = "0.4"
+raft = "0.5.0"
+rand = "0.8"
+rocksdb = "0.15.0"
+tokio = { version = "0.3.4", features = ["net", "rt", "macros", "time"]}
+tokio-util = { version = "0.5.0", features = ["compat"] }
+
+[build-dependencies]
+capnpc = "0.14"
