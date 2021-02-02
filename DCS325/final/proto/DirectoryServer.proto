@@ -1,0 +1,34 @@
+syntax = "proto3";
+package distfs.dir;
+
+service DirServer {
+  rpc fileserver_online(FileServerOn) returns (DirReply) {}
+  rpc fileserver_offline(FileServerOff) returns (DirReply) {}
+  rpc getfileserver(DirEmpty) returns (FileServerList) {}
+  rpc lockfile(LockRequest) returns (LockResponse) {}
+  rpc unlockfile(UnlockRequest) returns (LockResponse) {}
+}
+
+message DirReply { int32 success = 1; }
+
+message DirEmpty { int32 empty = 1; }
+
+message FileServerOn {
+  int32 server_id = 1;
+  string ip = 2;
+  string port = 3;
+  string location = 4;
+}
+message FileServerOff { int32 server_id = 1; }
+
+message FileServerInfo {
+  int32 server_id = 1;
+  string ip = 2;
+  string port = 3;
+  string location = 4;
+}
+message FileServerList { repeated FileServerInfo server_list = 1; }
+
+message LockResponse { int32 status = 1; }
+message LockRequest { string file_path = 1; }
+message UnlockRequest { string file_path = 1; }

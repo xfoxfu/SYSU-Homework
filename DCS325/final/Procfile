@@ -1,0 +1,3 @@
+dir: ./target/debug/directory
+fs1: ./target/debug/file 1 10081 LocalA misc/fs1 http://localhost:10080
+fs2: ./target/debug/file 2 10082 LocalA misc/fs2 http://localhost:10080

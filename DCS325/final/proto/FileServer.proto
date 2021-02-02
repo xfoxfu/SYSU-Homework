@@ -1,0 +1,28 @@
+syntax = "proto3";
+package distfs.file;
+
+service FileServer {
+  rpc upload(stream UploadRequest) returns (Reply) {}
+  rpc upload_without_syn(stream UploadRequest) returns (Reply) {}
+  rpc download(DownloadRequest) returns (stream Chunk) {}
+  rpc delete (DeleteRequest) returns (Reply) {}
+  rpc delete_without_syn(DeleteRequest) returns (Reply) {}
+  rpc list(ListRequest) returns (ListReply) {}
+  rpc mkdir(MkdirRequest) returns (Reply) {}
+}
+
+message Chunk { bytes buffer = 1; }
+
+message Empty { int32 empty = 1; }
+
+message UploadRequest {
+  string target_path = 1;
+  bytes buffer = 2;
+}
+message DownloadRequest { string download_path = 1; }
+message DeleteRequest { string delete_path = 1; }
+message ListRequest { string cur_path = 1; }
+message MkdirRequest { string dir_path = 1; }
+
+message Reply { int32 success = 1; }
+message ListReply { repeated string list = 1; }

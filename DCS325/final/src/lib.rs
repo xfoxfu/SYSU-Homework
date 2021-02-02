@@ -1,17 +1,9 @@
-#![deny(clippy::all)]
-
-#[allow(unused_imports)]
 #[macro_use]
 extern crate log;
-#[allow(unused_imports)]
-#[macro_use]
-extern crate prost_derive;
 
-pub mod kvraft;
-mod proto;
-pub mod raft;
+pub mod directory;
+pub mod file;
+// mod lock;
 
-/// A place holder for suppressing unused_variables warning.
-fn your_code_here<T>(_: T) -> ! {
-    unimplemented!()
-}
+pub use directory::proto::dir_server_client::DirServerClient;
+pub use file::proto::file_server_client::FileServerClient;
