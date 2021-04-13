@@ -30,41 +30,17 @@ string Token::to_string() const {
   case TokenType::Void:
     str += "Void";
     break;
-  case TokenType::Alpha:
-    str += "Alpha";
-    break;
-  case TokenType::BinDigit:
-    str += "BinDigit";
-    break;
-  case TokenType::OctDigit:
-    str += "OctDigit";
-    break;
-  case TokenType::Digit:
-    str += "Digit";
-    break;
-  case TokenType::HexDigit:
-    str += "HexDigit";
-    break;
   case TokenType::Ident:
     str += "Ident";
     break;
   case TokenType::Number:
     str += "Number";
     break;
-  case TokenType::BinNumber:
-    str += "BinNumber";
-    break;
-  case TokenType::DecNumber:
-    str += "DecNumber";
-    break;
-  case TokenType::OctNumber:
-    str += "OctNumber";
-    break;
-  case TokenType::HexNumber:
-    str += "HexNumber";
-    break;
   case TokenType::String:
     str += "String";
+    break;
+  case TokenType::Punct:
+    str += "Punct";
     break;
   case TokenType::Keyword:
     str += "Keyword";

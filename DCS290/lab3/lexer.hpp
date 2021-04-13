@@ -31,15 +31,17 @@ public:
   std::string::const_iterator cstr_current() const;
   bool finished() const;
   size_t token_count() const;
+  const std::vector<Token> &tokens() const;
 
   // ===== Parsers =====
-  Token Lexer::Ident();
-  Token Lexer::Number();
-  Token Lexer::BinNumber();
-  Token Lexer::DecNumber();
-  Token Lexer::OctNumber();
-  Token Lexer::HexNumber();
-  Token Lexer::String();
+  Token Ident();
+  Token Number();
+  Token BinNumber();
+  Token DecNumber();
+  Token OctNumber();
+  Token HexNumber();
+  Token String();
+  Token Punct();
   void whitespace();
 
   //===== Parse Function =====

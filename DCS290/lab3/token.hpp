@@ -6,19 +6,10 @@
 enum class TokenType {
   Void,
 
-  Alpha,
-  BinDigit,
-  OctDigit,
-  Digit,
-  HexDigit,
-
   Ident,
   Number,
-  BinNumber,
-  DecNumber,
-  OctNumber,
-  HexNumber,
   String,
+  Punct,
 
   Keyword,
 };

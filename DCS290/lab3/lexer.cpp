@@ -20,7 +20,7 @@ bool match_oct_digit(char chr) {
   return isdigit(chr) && chr != '8' && chr != '9';
 }
 bool match_oct_digit_lodash(char chr) {
-  return isdigit(chr) && chr != '8' && chr != '9' || chr == '_';
+  return (isdigit(chr) && chr != '8' && chr != '9') || chr == '_';
 }
 bool match_digit(char chr) { return isdigit(chr); }
 bool match_digit_lodash(char chr) { return isdigit(chr) || chr == '_'; }
@@ -104,8 +104,42 @@ bool Lexer::finished() const { return _current == _end; }
 
 size_t Lexer::token_count() const { return _tokens.size(); }
 
+const vector<Token> &Lexer::tokens() const { return _tokens; }
+
 // ===== Parsers =====
-Token Lexer::Ident() {}
+Token Lexer::Ident() {
+  auto begin = _current;
+  FAIL_IF(match(match_alpha_lodash) == '\0');
+  while (match(match_alpha_digit_lodash) != '\0') {
+  }
+  FAIL_IF(begin == _current);
+
+  TokenType ty = TokenType::Ident;
+  std::string value(begin, _current);
+  if (value == "BEGIN")
+    ty = TokenType::Keyword;
+  if (value == "ELSE")
+    ty = TokenType::Keyword;
+  if (value == "END")
+    ty = TokenType::Keyword;
+  if (value == "IF")
+    ty = TokenType::Keyword;
+  if (value == "INT")
+    ty = TokenType::Keyword;
+  if (value == "MAIN")
+    ty = TokenType::Keyword;
+  if (value == "REAL")
+    ty = TokenType::Keyword;
+  if (value == "REF")
+    ty = TokenType::Keyword;
+  if (value == "RETURN")
+    ty = TokenType::Keyword;
+  if (value == "READ")
+    ty = TokenType::Keyword;
+  if (value == "WRITE")
+    ty = TokenType::Keyword;
+  return Token(ty, begin, _current);
+}
 Token Lexer::Number() {
   RETURN_IF_PARSED(BinNumber);
   RETURN_IF_PARSED(OctNumber);
@@ -123,7 +157,7 @@ Token Lexer::BinNumber() {
   return Token(TokenType::Number, begin, _current);
 }
 Token Lexer::OctNumber() {
-  FAIL_IF(match('0', 'b') == '\0');
+  FAIL_IF(match('0', 'o') == '\0');
   auto begin = _current;
   FAIL_IF(match(match_oct_digit) == '\0');
   while (match(match_oct_digit_lodash) != '\0') {
@@ -132,7 +166,7 @@ Token Lexer::OctNumber() {
   return Token(TokenType::Number, begin, _current);
 }
 Token Lexer::HexNumber() {
-  FAIL_IF(match('0', 'b') == '\0');
+  FAIL_IF(match('0', 'x') == '\0');
   auto begin = _current;
   FAIL_IF(match(match_hex_digit) == '\0');
   while (match(match_hex_digit_lodash) != '\0') {
@@ -152,87 +186,86 @@ Token Lexer::DecNumber() {
 Token Lexer::String() {
   FAIL_IF(match('"') == '\0');
   auto begin = _current;
-  FAIL_IF(match(match_digit) == '\0');
-  while (match(match_digit_lodash) != '\0') {
+  while (match([](char chr) { return chr != '"'; }) != '\0') {
   }
-  FAIL_IF(begin == _current);
-  FAIL_IF(match('"'))
-  return Token(TokenType::Number, begin, _current);
+  auto end = _current;
+  FAIL_IF(begin == end);
+  FAIL_IF(match('"') == '\0');
+  return Token(TokenType::String, begin, end);
 }
-// Token Lexer::integer() {
-//   string data;
-//   char to_push;
-//   auto begin = _current;
-//   while ((to_push = match(match_digit)) != '\0') {
-//     data.push_back(to_push);
-//   }
-//   auto end = _current;
-//   if (!data.empty())
-//     return Token(Token::INTEGER, begin, end);
-//   else
-//     return Token(Token::VOID, begin, end);
-// }
-
-// Token Lexer::add() {
-//   if (match('+'))
-//     return Token(Token::OP_ADD, _current - 1, _current);
-//   else
-//     return Token(Token::VOID, _current, _current);
-// }
-
-// Token Lexer::subtract() {
-//   if (match('-'))
-//     return Token(Token::OP_SUBTRACT, _current - 1, _current);
-//   else
-//     return Token(Token::VOID, _current, _current);
-// }
-
-// Token Lexer::multiply() {
-//   if (match('*'))
-//     return Token(Token::OP_MULTIPLY, _current - 1, _current);
-//   else
-//     return Token(Token::VOID, _current, _current);
-// }
-
-// Token Lexer::divide() {
-//   if (match('/'))
-//     return Token(Token::OP_DIVIDE, _current - 1, _current);
-//   else
-//     return Token(Token::VOID, _current, _current);
-// }
-
-// Token Lexer::lparen() {
-//   if (match('('))
-//     return Token(Token::OP_LPAREN, _current - 1, _current);
-//   else
-//     return Token(Token::VOID, _current, _current);
-// }
-
-// Token Lexer::rparen() {
-//   if (match(')'))
-//     return Token(Token::OP_RPAREN, _current - 1, _current);
-//   else
-//     return Token(Token::VOID, _current, _current);
-// }
-
 void Lexer::whitespace() {
-  while (match(match_space) != '\0') {
+  while (match(match_space) != '\0' || *_current == '{') {
+    // handle comments
+    if (match('{') != '\0') {
+      while (match([](char c) { return c != '}'; })) {
+      }
+      if (match('}') == '\0') {
+        throw Error(Span(cstr_begin(), cstr_end()),
+                    Span(_current - 1, _current),
+                    string("Expecting close of comment: '}'"));
+      }
+    }
   }
+}
+Token Lexer::Punct() {
+  if (match('_'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match('-'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match(','))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match(';'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match(':', '='))
+    return Token(TokenType::Punct, _current - 2, _current);
+  if (match('!', '='))
+    return Token(TokenType::Punct, _current - 2, _current);
+  if (match('!'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match('('))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match(')'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match('*'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match('/'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match('&', '&'))
+    return Token(TokenType::Punct, _current - 2, _current);
+  if (match('+'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match('<', '='))
+    return Token(TokenType::Punct, _current - 2, _current);
+  if (match('<'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match('=', '='))
+    return Token(TokenType::Punct, _current - 2, _current);
+  if (match('>', '='))
+    return Token(TokenType::Punct, _current - 2, _current);
+  if (match('>'))
+    return Token(TokenType::Punct, _current - 1, _current);
+  if (match('|', '|'))
+    return Token(TokenType::Punct, _current - 2, _current);
+  return Token(TokenType::Void, _current, _current);
 }
 
 //===== Parse Function =====
 void Lexer::parse() {
   vector<Error> errors;
   do {
-    auto token = advance();
-    if (!token.is(TokenType::Void))
-      _tokens.push_back(token);
-    else if (!finished()) {
-      auto chr = progress();
-      assert(_current - 1 >= _begin);
-      errors.push_back(Error(Span(cstr_begin(), cstr_end()),
-                             Span(_current - 1, _current),
-                             string("Unexpected token: '") + chr + "'"));
+    try {
+      auto token = advance();
+      if (!token.is(TokenType::Void))
+        _tokens.push_back(token);
+      else if (!finished()) {
+        auto chr = progress();
+        assert(_current - 1 >= _begin);
+        errors.push_back(Error(Span(cstr_begin(), cstr_end()),
+                               Span(_current - 1, _current),
+                               string("Unexpected token: '") + chr + "'"));
+      }
+    } catch (Error e) {
+      errors.push_back(e);
     }
   } while (!finished());
   if (!errors.empty())
@@ -241,8 +274,9 @@ void Lexer::parse() {
 
 Token Lexer::advance() {
   whitespace();
-  RETURN_IF_PARSED(Ident);
+  RETURN_IF_PARSED(Punct);
   RETURN_IF_PARSED(Number);
   RETURN_IF_PARSED(String);
+  RETURN_IF_PARSED(Ident);
   return Token(TokenType::Void, _current, _current);
 }
