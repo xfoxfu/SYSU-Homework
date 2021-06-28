@@ -1,7 +1,7 @@
 #include "error.hpp"
 #include "lexer.hpp"
 #include "parser.hpp"
-#include "visitor.hpp"
+#include "semantic.hpp"
 #include <fstream>
 #include <iomanip>
 #include <iostream>
@@ -50,6 +50,13 @@ int main(int argc, char **argv) {
     auto program = parser.Program();
     std::cout << "*****AST*****" << std::endl;
     print(*program);
+    std::cout << "*****Type Checking*****" << std::endl;
+    SemanticVisitor visitor(lexer.tokens());
+    visitor.get_type(*program);
+    for (const auto &e : visitor.errors) {
+      std::cout << e << std::endl;
+    }
+
   } catch (const std::vector<Error> &errs) {
     for (const auto &e : errs) {
       std::cout << e << std::endl;

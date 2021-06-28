@@ -302,6 +302,7 @@ Keyword: (END)
         - Keyword: (INT)
         - Ident: (z)
       - Assignment
+        - Ident: (z)
         - Expr
           - Expr
             - Variable
@@ -316,6 +317,8 @@ Keyword: (END)
             - Punct: (*)
             - Variable
               - Ident: (y)
+          - Punct: (+)
+          - Number: (123)
       - ReturnStmt
         - Variable
           - Ident: (z)
@@ -324,10 +327,17 @@ Keyword: (END)
     - Keyword: (MAIN)
     - Ident: (f1)
     - Params
+      - Param
+        - Keyword: (INT)
+        - Ident: (a0)
+      - Param
+        - Keyword: (REAL)
+        - Ident: (a2)
     - Block
       - Vars
         - Keyword: (INT)
         - Ident: (x)
+        - Number: (10)
       - Call
         - Keyword: (READ)
         - Arguments
@@ -347,6 +357,7 @@ Keyword: (END)
         - Keyword: (INT)
         - Ident: (z)
       - Assignment
+        - Ident: (z)
         - Expr
           - Call
             - Ident: (f2)

@@ -5,9 +5,9 @@ BEGIN
     z := x*x - y*y + 0x123;
     RETURN z; 
 END
-INT MAIN f1(REF INT a0, REAL a2) 
+INT MAIN f1_main(INT a0, REAL a2) 
 BEGIN
-    INT x;
+    INT x := 10;
     READ(x, "A41.input");
     INT y;
     READ(y, "A42.input");

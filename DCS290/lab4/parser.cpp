@@ -1,5 +1,6 @@
 #include "parser.hpp"
 #include "error.hpp"
+#include <memory>
 
 #define DEBUG_TRACE_OFF
 #ifndef DEBUG_TRACE_OFF
@@ -292,10 +293,10 @@ shared_ptr<AstNode> Parser::Vars() {
 
   auto ast = make_shared<AstNode>(MARK_SPAN_GEN(1), "Vars");
   ast->children.push_back(type);
+  ast->children.push_back(ident);
   if (expr != nullptr) {
     ast->children.push_back(expr);
   }
-  ast->children.push_back(ident);
   return ast;
 }
 // Block        -> 'BEGIN' Statement* 'END'
@@ -352,6 +353,7 @@ shared_ptr<AstNode> Parser::Assignment() {
   match(TokenType::Punct, ";");
 
   auto ast = make_shared<AstNode>(MARK_SPAN_GEN(1), "Assignment");
+  ast->children.push_back(ident);
   ast->children.push_back(expr);
   return ast;
 }
@@ -484,87 +486,82 @@ shared_ptr<AstNode> Parser::Expr1() {
 shared_ptr<AstNode> Parser::Expr2() {
   DEBUG_TRACE(Expr2);
   MARK_SPAN_BEGIN;
-  children_t children;
-
-  children.push_back(Expr1());
+  auto ret = Expr1();
   while (peek(TokenType::Punct, "*") || peek(TokenType::Punct, "/")) {
-    children.push_back(make_shared<AstNode>(match(TokenType::Punct)));
-    children.push_back(Expr1());
+    auto punct = make_shared<AstNode>(match(TokenType::Punct));
+    auto rhs = Expr1();
+    auto lhs = ret;
+    ret = make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr");
+    ret->children.push_back(punct);
+    ret->children.push_back(lhs);
+    ret->children.push_back(rhs);
   }
-
-  if (children.size() == 1) {
-    return children.front();
-  }
-  return make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr", children);
+  return ret;
 }
 // Expr3        -> Expr2 (('+' | '-') Expr2)*
 shared_ptr<AstNode> Parser::Expr3() {
   DEBUG_TRACE(Expr3);
   MARK_SPAN_BEGIN;
-  children_t children;
-
-  children.push_back(Expr2());
+  auto ret = Expr2();
   while (peek(TokenType::Punct, "+") || peek(TokenType::Punct, "-")) {
-    children.push_back(make_shared<AstNode>(match(TokenType::Punct)));
-    children.push_back(Expr2());
+    auto punct = make_shared<AstNode>(match(TokenType::Punct));
+    auto rhs = Expr2();
+    auto lhs = ret;
+    ret = make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr");
+    ret->children.push_back(punct);
+    ret->children.push_back(lhs);
+    ret->children.push_back(rhs);
   }
-
-  if (children.size() == 1) {
-    return children.front();
-  }
-  return make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr", children);
+  return ret;
 }
 // Expr4        -> Expr3 (('>' | '<' | '>=' | '<=') Expr3)*
 shared_ptr<AstNode> Parser::Expr4() {
   DEBUG_TRACE(Expr4);
   MARK_SPAN_BEGIN;
-  children_t children;
-
-  children.push_back(Expr3());
+  auto ret = Expr3();
   while (peek(TokenType::Punct, ">") || peek(TokenType::Punct, "<") ||
          peek(TokenType::Punct, ">=") || peek(TokenType::Punct, "<=")) {
-    children.push_back(make_shared<AstNode>(match(TokenType::Punct)));
-    children.push_back(Expr3());
+    auto punct = make_shared<AstNode>(match(TokenType::Punct));
+    auto rhs = Expr3();
+    auto lhs = ret;
+    ret = make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr");
+    ret->children.push_back(punct);
+    ret->children.push_back(lhs);
+    ret->children.push_back(rhs);
   }
-
-  if (children.size() == 1) {
-    return children.front();
-  }
-  return make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr", children);
+  return ret;
 }
 // Expr5        -> Expr4 (('==' | '!=') Expr4)*
 shared_ptr<AstNode> Parser::Expr5() {
   DEBUG_TRACE(Expr5);
   MARK_SPAN_BEGIN;
-  children_t children;
-
-  children.push_back(Expr4());
+  auto ret = Expr4();
   while (peek(TokenType::Punct, "==") || peek(TokenType::Punct, "!=")) {
-    children.push_back(make_shared<AstNode>(match(TokenType::Punct)));
-    children.push_back(Expr4());
+    auto punct = make_shared<AstNode>(match(TokenType::Punct));
+    auto rhs = Expr4();
+    auto lhs = ret;
+    ret = make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr");
+    ret->children.push_back(punct);
+    ret->children.push_back(lhs);
+    ret->children.push_back(rhs);
   }
-
-  if (children.size() == 1) {
-    return children.front();
-  }
-  return make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr", children);
+  return ret;
 }
 // Expr6        -> Expr5 (('&&' | '||') Expr5)*
 shared_ptr<AstNode> Parser::Expr6() {
   DEBUG_TRACE(Expr6);
   MARK_SPAN_BEGIN;
-  children_t children;
-
-  children.push_back(Expr5());
+  auto ret = Expr5();
   while (peek(TokenType::Punct, "&&") || peek(TokenType::Punct, "||")) {
-    children.push_back(make_shared<AstNode>(match(TokenType::Punct)));
-    children.push_back(Expr5());
+    auto punct = make_shared<AstNode>(match(TokenType::Punct));
+    auto rhs = Expr5();
+    auto lhs = ret;
+    ret = make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr");
+    ret->children.push_back(punct);
+    ret->children.push_back(lhs);
+    ret->children.push_back(rhs);
   }
-
-  if (children.size() == 1) {
-    return children.front();
-  }
-  return make_shared<AstNode>(MARK_SPAN_GEN(1), "Expr", children);
+  return ret;
 }
 // Expression   -> Expr6
 shared_ptr<AstNode> Parser::Expression() {
