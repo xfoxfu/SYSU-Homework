@@ -1,6 +1,6 @@
-#include "lexer.hpp"
-// #include "parser.hpp"
 #include "error.hpp"
+#include "lexer.hpp"
+#include "parser.hpp"
 #include "visitor.hpp"
 #include <fstream>
 #include <iomanip>
@@ -11,6 +11,13 @@
 
 using std::string;
 using std::vector;
+
+void print(const AstNode &node, size_t indent = 0) {
+  std::cout << string(indent, ' ') << "- " << node.value << std::endl;
+  for (const auto &child : node.children) {
+    print(*child, indent + 2);
+  }
+}
 
 int main(int argc, char **argv) {
   std::string file;
@@ -30,30 +37,26 @@ int main(int argc, char **argv) {
                   (std::istreambuf_iterator<char>()));
 
   try {
+    std::cout << "*****Input*****" << std::endl << str << std::endl;
+
     auto lexer = Lexer(str);
     lexer.parse();
-    // auto parser = Parser(lexer.cbegin(), lexer.cend());
-    // auto expr = parser.expr();
-
-    std::cout << "*****Input*****" << std::endl << str << std::endl;
     std::cout << "*****Tokens*****" << std::endl;
     for (const auto &token : lexer.tokens()) {
       std::cout << token.to_string() << std::endl;
     }
+
+    auto parser = Parser(lexer.cbegin(), lexer.cend());
+    auto program = parser.Program();
+    std::cout << "*****AST*****" << std::endl;
+    print(*program);
   } catch (const std::vector<Error> &errs) {
     for (const auto &e : errs) {
       std::cout << e << std::endl;
     }
+  } catch (const Error &err) {
+    std::cout << err << std::endl;
   }
-  // Printer pr;
-  // expr->accept(*&pr);
-  // std::cout << "AST: " << std::endl;
-  // for (const auto &line : pr.result()) {
-  //   for (const auto &value : line) {
-  //     std::cout << std::setw(4) << value;
-  //   }
-  //   std::cout << std::endl;
-  // }
   return 0;
 }
 

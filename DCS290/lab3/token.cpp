@@ -2,6 +2,23 @@
 
 using namespace std;
 
+string token_type_to_string(TokenType type) {
+  switch (type) {
+  case TokenType::Void:
+    return "Void";
+  case TokenType::Ident:
+    return "Ident";
+  case TokenType::Number:
+    return "Number";
+  case TokenType::String:
+    return "String";
+  case TokenType::Punct:
+    return "Punct";
+  case TokenType::Keyword:
+    return "Keyword";
+  }
+}
+
 Token::Token(TokenType type, Span span) : HasSpan(span), type(type) {}
 
 Token::Token(TokenType type, string::const_iterator begin,
@@ -14,6 +31,8 @@ bool Token::is_keyword(const std::string &name) const {
   return type == TokenType::Keyword && HasSpan::to_string() == name;
 }
 
+string Token::value() const { return HasSpan::to_string(); }
+
 bool Token::operator==(const Token &rhs) const {
   if (type == TokenType::Void && rhs.type == TokenType::Void)
     return get_span() == rhs.get_span();
@@ -23,6 +42,9 @@ bool Token::operator==(const Token &rhs) const {
 bool Token::operator==(TokenType type) const { return is(type); }
 
 bool Token::operator!=(TokenType type) const { return !is(type); }
+
+bool Token::operator==(const std::string &val) const { return value() == val; }
+bool Token::operator!=(const std::string &val) const { return value() != val; }
 
 string Token::to_string() const {
   string str;

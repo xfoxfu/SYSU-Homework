@@ -2,6 +2,9 @@
 
 using namespace std;
 
-AstNode::AstNode(Span span, AstType ty,
-                 std::initializer_list<std::shared_ptr<AstNode>> children)
-    : HasSpan(span), ty(ty), children(children) {}
+AstNode::AstNode(Span span, string value) : HasSpan(span), value(value) {}
+
+AstNode::AstNode(Span span, string value, vector<shared_ptr<AstNode>> children)
+    : HasSpan(span), value(value), children(children) {}
+
+AstNode::AstNode(Token token) : HasSpan(token), value(token.to_string()) {}

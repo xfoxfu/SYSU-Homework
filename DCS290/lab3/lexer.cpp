@@ -7,8 +7,8 @@
 #include <string>
 #include <vector>
 
-bool match_alpha(char chr) { return isalnum(chr); }
-bool match_alpha_lodash(char chr) { return isalnum(chr) || chr == '_'; }
+bool match_alpha(char chr) { return isalpha(chr); }
+bool match_alpha_lodash(char chr) { return isalpha(chr) || chr == '_'; }
 bool match_alpha_digit_lodash(char chr) {
   return isalnum(chr) || isdigit(chr) || chr == '_';
 }
@@ -116,28 +116,12 @@ Token Lexer::Ident() {
 
   TokenType ty = TokenType::Ident;
   std::string value(begin, _current);
-  if (value == "BEGIN")
+  if (value == "BEGIN" || value == "ELSE" || value == "END" || value == "IF" ||
+      value == "INT" || value == "MAIN" || value == "REAL" || value == "REF" ||
+      value == "RETURN" || value == "READ" || value == "STRING" ||
+      value == "WRITE") {
     ty = TokenType::Keyword;
-  if (value == "ELSE")
-    ty = TokenType::Keyword;
-  if (value == "END")
-    ty = TokenType::Keyword;
-  if (value == "IF")
-    ty = TokenType::Keyword;
-  if (value == "INT")
-    ty = TokenType::Keyword;
-  if (value == "MAIN")
-    ty = TokenType::Keyword;
-  if (value == "REAL")
-    ty = TokenType::Keyword;
-  if (value == "REF")
-    ty = TokenType::Keyword;
-  if (value == "RETURN")
-    ty = TokenType::Keyword;
-  if (value == "READ")
-    ty = TokenType::Keyword;
-  if (value == "WRITE")
-    ty = TokenType::Keyword;
+  }
   return Token(ty, begin, _current);
 }
 Token Lexer::Number() {
@@ -148,7 +132,7 @@ Token Lexer::Number() {
   return Token(TokenType::Void, _current, _current);
 }
 Token Lexer::BinNumber() {
-  FAIL_IF(match('0', 'b') == '\0');
+  FAIL_IF(match('0', 'b') == false);
   auto begin = _current;
   FAIL_IF(match(match_bin_digit) == '\0');
   while (match(match_bin_digit_lodash) != '\0') {
@@ -157,7 +141,7 @@ Token Lexer::BinNumber() {
   return Token(TokenType::Number, begin, _current);
 }
 Token Lexer::OctNumber() {
-  FAIL_IF(match('0', 'o') == '\0');
+  FAIL_IF(match('0', 'o') == false);
   auto begin = _current;
   FAIL_IF(match(match_oct_digit) == '\0');
   while (match(match_oct_digit_lodash) != '\0') {
@@ -166,7 +150,7 @@ Token Lexer::OctNumber() {
   return Token(TokenType::Number, begin, _current);
 }
 Token Lexer::HexNumber() {
-  FAIL_IF(match('0', 'x') == '\0');
+  FAIL_IF(match('0', 'x') == false);
   auto begin = _current;
   FAIL_IF(match(match_hex_digit) == '\0');
   while (match(match_hex_digit_lodash) != '\0') {
@@ -175,7 +159,6 @@ Token Lexer::HexNumber() {
   return Token(TokenType::Number, begin, _current);
 }
 Token Lexer::DecNumber() {
-  FAIL_IF(match('0', 'b') == '\0');
   auto begin = _current;
   FAIL_IF(match(match_digit) == '\0');
   while (match(match_digit_lodash) != '\0') {
@@ -184,22 +167,23 @@ Token Lexer::DecNumber() {
   return Token(TokenType::Number, begin, _current);
 }
 Token Lexer::String() {
-  FAIL_IF(match('"') == '\0');
+  FAIL_IF(match('"') == false);
   auto begin = _current;
   while (match([](char chr) { return chr != '"'; }) != '\0') {
   }
   auto end = _current;
   FAIL_IF(begin == end);
-  FAIL_IF(match('"') == '\0');
+  FAIL_IF(match('"') == false);
   return Token(TokenType::String, begin, end);
 }
 void Lexer::whitespace() {
-  while (match(match_space) != '\0' || *_current == '{') {
+  while (match(match_space) != '\0' || *_current == '/') {
     // handle comments
-    if (match('{') != '\0') {
-      while (match([](char c) { return c != '}'; })) {
+    if (match('/', '*') == true) {
+      while (match([](char c, char n) { return c != '*' && n != '/'; }).first !=
+             '\0') {
       }
-      if (match('}') == '\0') {
+      if (match('*', '/') == false) {
         throw Error(Span(cstr_begin(), cstr_end()),
                     Span(_current - 1, _current),
                     string("Expecting close of comment: '}'"));

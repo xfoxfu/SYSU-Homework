@@ -32,19 +32,31 @@ ostream &operator<<(ostream &out, const Error &error) {
   assert(error.length >= 1);
   assert(error.begin + error.length <= error.total.size());
 
+  auto pos_line_beg = error.total.find_last_of('\n', error.begin);
+  if (pos_line_beg == string::npos) {
+    pos_line_beg = -1;
+  }
+  pos_line_beg += 1;
+  auto pos_line_end = error.total.find_first_of('\n', error.begin);
+  if (pos_line_end == string::npos) {
+    pos_line_end = error.total.length();
+  }
+
   string hint = "INPUT:" + to_string(error.begin) + ": ";
   out
       // output hint line
       << hint
       // output string before error
-      << error.total.substr(0, error.begin)
+      << error.total.substr(pos_line_beg, error.begin - pos_line_beg)
       // output error section
       << error.total.substr(error.begin, error.length)
       // output rest string
-      << error.total.substr(error.begin + error.length)
+      << error.total.substr(error.begin + error.length,
+                            pos_line_end - (error.begin + error.length))
       << endl
       // output hint line
-      << string(hint.length() + error.begin, ' ') << string(error.length, '^')
+      << string(hint.length() + error.begin - pos_line_beg, ' ')
+      << string(error.length, '^')
       << endl
       // output error message
       << "Error: " << error.message;

@@ -13,7 +13,7 @@ bool Span::operator==(const Span &rhs) const {
 
 Span Span::operator+(const Span &rhs) const { return Span(begin, rhs.end); }
 
-string Span::to_string() const { return '\"' + string(begin, end) + '\"'; }
+string Span::to_string() const { return string(begin, end); }
 
 ostream &operator<<(ostream &out, const Span &span) {
   return out << span.to_string();

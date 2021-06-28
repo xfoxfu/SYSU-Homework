@@ -6,7 +6,7 @@ add_executable(lab3
     ast.cpp
     error.cpp
     lexer.cpp
-    # parser.cpp
+    parser.cpp
     span.cpp
     token.cpp
 )
