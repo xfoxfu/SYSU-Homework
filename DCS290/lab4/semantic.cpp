@@ -1,15 +1,18 @@
 #include "semantic.hpp"
 #include "ast.hpp"
 #include "fmt/core.h"
+#include "fmt/format.h"
+#include "fmt/ostream.h"
 #include <algorithm>
+#include <iostream>
+#include <iterator>
 #include <optional>
 #include <queue>
+#include <sstream>
 #include <string>
+#include <sys/resource.h>
 #include <utility>
 #include <vector>
-
-#define FMT_HEADER_ONLY
-#include "fmt/format.h"
 
 using std::string;
 using std::vector;
@@ -29,6 +32,7 @@ SemanticVisitor::SemanticVisitor(const vector<Token> &total) {
   _begin = total.begin();
   _end = total.end();
   current_layer = 0;
+  print_trace = false;
 }
 
 void SemanticVisitor::enter_layer() { current_layer += 1; }
@@ -36,6 +40,11 @@ void SemanticVisitor::enter_layer() { current_layer += 1; }
 void SemanticVisitor::exit_layer() {
   current_layer -= 1;
   while (symbol_table.size() > 0 && symbol_table.back().layer > current_layer) {
+    if (print_trace) {
+      fmt::print(std::cerr, "Eliminated Symbol [{}] {}: {}\n",
+                 symbol_table.back().layer, symbol_table.back().name,
+                 fmt::join(symbol_table.back().type, "->"));
+    }
     symbol_table.pop_back();
   }
 }
@@ -53,6 +62,10 @@ void SemanticVisitor::add_symbol(std::string name,
 void SemanticVisitor::add_symbol(std::string name,
                                  std::vector<std::string> type, size_t layer) {
   symbol_table.push_back(SemanticSymbol(name, layer, type));
+  if (print_trace) {
+    fmt::print(std::cerr, "Added      Symbol [{}] {}: {}\n", layer, name,
+               fmt::join(type, "->"));
+  }
   std::sort(symbol_table.begin(), symbol_table.end(),
             SemanticSymbolComparator());
 }
@@ -303,11 +316,174 @@ vector<string> SemanticVisitor::get_type(const AstNode &node) {
       }
       return vector<string>{"INT"};
     }
-    fmt::print("DEBUG: assert false hit {}", node.children[0]->value);
+    fmt::print(std::cerr, "DEBUG: assert false hit {}",
+               node.children[0]->value);
     assert(false);
   } else if (node.value.rfind("Number: ", 0) == 0) {
     return vector<string>{"INT"};
+  } else if (node.value.rfind("String: ", 0) == 0) {
+    return vector<string>{"STRING"};
   }
-  fmt::print("DEBUG: assert false hit {}", node.value);
+  fmt::print(std::cerr, "DEBUG: assert false hit {}", node.value);
   assert(false);
+}
+
+std::string convert_type_llvm(const std::string &original) {
+  if (original == "INT") {
+    return "i32";
+  } else if (original == "REAL") {
+    return "f64";
+  } else if (original == "STRING") {
+    return "string";
+  } else {
+    return "void";
+  }
+}
+
+std::string convert_token(const std::string &value) {
+  if (value.rfind("Number: ", 0) == 0) {
+    return value.substr(9, value.size() - 9 - 1);
+  } else if (value.rfind("Ident: ", 0) == 0) {
+    return value.substr(8, value.size() - 8 - 1);
+  } else if (value.rfind("String: ", 0) == 0) {
+    return value.substr(9, value.size() - 9 - 1);
+  } else if (value.rfind("Punct: ", 0) == 0) {
+    return value.substr(8, value.size() - 8 - 1);
+  } else if (value.rfind("Keyword: ", 0) == 0) {
+    return value.substr(10, value.size() - 10 - 1);
+  }
+  return value;
+}
+
+string SemanticVisitor::emit_ir(const AstNode &node) {
+  std::string ir;
+  get_type(node);
+  if (node.value == "Program") {
+    fmt::format_to(std::back_inserter(ir), "source_filename = \"*.tiny\"\n");
+    for (const auto &child : node.children) {
+      fmt::format_to(std::back_inserter(ir), "{}\n", emit_ir(*child));
+    }
+  } else if (node.value == "Func") {
+    current_register = 0;
+    current_label = 0;
+    bool is_main = false;
+    if (node.children[1]->value == "Keyword: (MAIN)") {
+      is_main = true;
+    }
+    auto type = get_type(node);
+    fmt::format_to(std::back_inserter(ir), "define {} @{}({}) {{\n",
+                   convert_type_llvm(type.back()),
+                   convert_token(node.children[is_main ? 2 : 1]->value),
+                   emit_ir(*node.children[is_main ? 3 : 2]));
+    fmt::format_to(std::back_inserter(ir), "{}",
+                   emit_ir(*node.children[is_main ? 4 : 3]));
+    fmt::format_to(std::back_inserter(ir), "\n}}\n");
+  } else if (node.value == "Params") {
+    vector<string> ret;
+    for (const auto &child : node.children) {
+      ret.push_back(emit_ir(*child));
+    }
+    fmt::format_to(std::back_inserter(ir), "{}", fmt::join(ret, ", "));
+  } else if (node.value == "Param") {
+    auto type = get_type(node).front();
+    fmt::format_to(std::back_inserter(ir), "{} %{}", convert_type_llvm(type),
+                   convert_token(node.children[1]->value));
+  } else if (node.value == "Vars") {
+    fmt::format_to(std::back_inserter(ir), "%{} = alloca {}",
+                   convert_token(node.children[1]->value),
+                   convert_type_llvm(normalize_type(node.children[0]->value)));
+    if (node.children.size() > 2) {
+      fmt::format_to(std::back_inserter(ir), "\n  {}\n  %{} := %{}",
+                     emit_ir(*node.children[2]),
+                     convert_token(node.children[1]->value),
+                     current_register - 1);
+    }
+  } else if (node.value == "Block") {
+    vector<string> ret;
+    for (const auto &child : node.children) {
+      ret.push_back(emit_ir(*child));
+    }
+    fmt::format_to(std::back_inserter(ir), "  {}", fmt::join(ret, "\n  "));
+  } else if (node.value == "Assignment") {
+    fmt::format_to(
+        std::back_inserter(ir), "{}\n  %{} = %{}", emit_ir(*node.children[1]),
+        convert_token(node.children[0]->value), current_register - 1);
+  } else if (node.value == "IfStmt") {
+    size_t then_label = current_label++;
+    size_t else_label = current_label++;
+    size_t fin_label = current_label++;
+    fmt::format_to(std::back_inserter(ir),
+                   "{}\n"
+                   "  br ir %{}, label %L{}, label %{}\n"
+                   "L{}:\n"
+                   "{}\n"
+                   "  goto %L{}\n"
+                   "L{}:\n",
+                   emit_ir(*node.children[0]), current_register - 1, then_label,
+                   else_label, then_label, emit_ir(*node.children[1]),
+                   fin_label, else_label);
+    if (node.children.size() > 2) {
+      fmt::format_to(std::back_inserter(ir), "{}", emit_ir(*node.children[2]));
+    }
+    fmt::format_to(std::back_inserter(ir), "\nL{}:", fin_label);
+  } else if (node.value == "ReturnStmt") {
+    fmt::format_to(std::back_inserter(ir), "{}\n", emit_ir(*node.children[0]));
+    fmt::format_to(std::back_inserter(ir), "  return {} %{}",
+                   convert_type_llvm(get_type(*node.children[0]).front()),
+                   current_register - 1);
+  } else if (node.value == "Arguments") {
+    assert(node.value == "Arguments");
+  } else if (node.value == "Call") {
+    vector<string> arg_ir;
+    vector<string> arg_reg;
+    for (const auto &arg : node.children[1]->children) {
+      arg_ir.push_back(emit_ir(*arg));
+      arg_reg.push_back(fmt::format("{} %{}",
+                                    convert_type_llvm(get_type(*arg).front()),
+                                    current_register - 1));
+    }
+    fmt::format_to(std::back_inserter(ir), "{}", fmt::join(arg_ir, "\n  "));
+    const auto &ident = node.children[0]->value;
+    std::string fn_type;
+    if (get_symbol_type(ident).size() == 0) {
+      fn_type = "void";
+    } else {
+      fn_type = convert_type_llvm(get_symbol_type(ident).back());
+    }
+    fmt::format_to(std::back_inserter(ir), "\n  %{} := call {} @{} ({})",
+                   current_register++, fn_type, convert_token(ident),
+                   fmt::join(arg_reg, ", "));
+
+  } else if (node.value == "Variable") {
+    fmt::format_to(std::back_inserter(ir), "%{} := %{}", current_register++,
+                   convert_token(node.children[0]->value));
+  } else if (node.value == "Expr") {
+    if (node.children.size() == 2) {
+      auto left_ir = emit_ir(*node.children[1]);
+      auto left_reg = current_register - 1;
+      fmt::format_to(std::back_inserter(ir), "{}\n  %{} := {} %{}", left_ir,
+                     current_register, convert_token(node.children[0]->value),
+                     left_reg);
+    } else if (node.children.size() == 3) {
+      auto left_ir = emit_ir(*node.children[1]);
+      auto left_reg = current_register - 1;
+      auto right_ir = emit_ir(*node.children[2]);
+      auto right_reg = current_register - 1;
+      fmt::format_to(std::back_inserter(ir), "{}\n  {}\n  %{} := {} %{} %{}",
+                     left_ir, right_ir, current_register,
+                     convert_token(node.children[0]->value), left_reg,
+                     right_reg);
+    }
+    current_register += 1;
+  } else if (node.value.rfind("Number: ", 0) == 0) {
+    fmt::format_to(std::back_inserter(ir), "%{} := {}", current_register++,
+                   convert_token(node.value));
+  } else if (node.value.rfind("String: ", 0) == 0) {
+    fmt::format_to(std::back_inserter(ir), "%{} := {}", current_register++,
+                   convert_token(node.value));
+  } else {
+    fmt::print(std::cerr, "DEBUG: assert false hit {}\n", node.value);
+    assert(false);
+  }
+  return ir;
 }

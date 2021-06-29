@@ -52,11 +52,14 @@ int main(int argc, char **argv) {
     print(*program);
     std::cout << "*****Type Checking*****" << std::endl;
     SemanticVisitor visitor(lexer.tokens());
+    visitor.print_trace = true;
     visitor.get_type(*program);
     for (const auto &e : visitor.errors) {
       std::cout << e << std::endl;
     }
-
+    std::cout << "*****IR*****" << std::endl;
+    visitor.print_trace = false;
+    std::cout << visitor.emit_ir(*program) << std::endl;
   } catch (const std::vector<Error> &errs) {
     for (const auto &e : errs) {
       std::cout << e << std::endl;

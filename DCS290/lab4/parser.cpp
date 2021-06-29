@@ -276,6 +276,7 @@ shared_ptr<AstNode> Parser::Type() {
     return make_shared<AstNode>(match(TokenType::Keyword));
   }
   throw make_error("Expected Type INT, REAL or STRING.");
+  MARK_SPAN_GEN(0);
 }
 // Vars         -> Type Ident [ ':=' Expression ] ';'
 shared_ptr<AstNode> Parser::Vars() {
@@ -340,6 +341,7 @@ shared_ptr<AstNode> Parser::Statement() {
   } else {
     throw make_error("Expected statement.");
   }
+  MARK_SPAN_GEN(0);
 }
 // Assignment   -> Ident ':=' Expression ';'
 shared_ptr<AstNode> Parser::Assignment() {

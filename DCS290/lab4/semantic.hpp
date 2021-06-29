@@ -29,6 +29,9 @@ struct SemanticVisitor {
   std::vector<Error> errors;
   std::vector<Token>::const_iterator _begin;
   std::vector<Token>::const_iterator _end;
+  bool print_trace;
+  size_t current_register;
+  size_t current_label;
 
   SemanticVisitor(const std::vector<Token> &total);
   void enter_layer();
@@ -40,4 +43,5 @@ struct SemanticVisitor {
   void emit_error(const AstNode &cur, std::string cause);
   bool has_symbol(const std::string &name);
   std::vector<std::string> get_symbol_type(const std::string &name);
+  std::string emit_ir(const AstNode &node);
 };

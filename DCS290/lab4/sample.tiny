@@ -2,6 +2,11 @@
 INT f2(INT x, INT y ) 
 BEGIN 
     INT z;
+    IF (z == 10) BEGIN
+        z := 30;
+    END ELSE BEGIN
+        z := 100;
+    END
     z := x*x - y*y + 0x123;
     RETURN z; 
 END
@@ -13,5 +18,6 @@ BEGIN
     READ(y, "A42.input");
     INT z;
     z := f2(x,y) + f2(y,x);
+    z := f2(x,y) + f2(y,100);
     WRITE (z, "A4.output"); 
 END
